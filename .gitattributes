@@ -1,2 +1,14 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Configuração do GitHub Linguist
+*.java linguist-detectable=true
+*.html linguist-detectable=true
+*.js linguist-detectable=true
+*.css linguist-detectable=true
+esp32/* linguist-language=C++
+
+# Arquivos utilitários / wrappers desconsiderados das estatísticas de código
+mvnw linguist-vendored=true
+mvnw.cmd linguist-vendored=true
+.mvn/** linguist-vendored=true
