@@ -119,7 +119,7 @@
 </main>
 
 <script>
-    setInterval(()=>{const d=new Date();document.getElementById('clk').textContent=d.toLocaleTimeString('pt-BR');},1000);
+    setInterval(()=>{const el=document.getElementById('clk');if(el)el.textContent=new Date().toLocaleTimeString('pt-BR');},1000);
     (()=>{const d=new Date();const el=document.getElementById('fdate');if(el)el.textContent=d.toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});})();
 
     // Validar se as senhas coincidem
@@ -138,5 +138,7 @@
         }
     });
 </script>
+<th:block th:replace="~{fragments/sdae-scripts :: bundle(null)}"></th:block>
+<script th:src="@{/js/sdae-forms.js}"></script>
 </body>
 </html>

@@ -641,10 +641,10 @@
 
             <!-- Floating left panel -->
             <div class="fp fp-l">
-                <div class="fp-eye">Pistão</div>
-                <div class="fp-big">97<span style="font-size:16px;color:rgba(255,255,255,.4)">%</span></div>
-                <div class="fp-unit">Eficiência operacional</div>
-                <div class="fp-bar"><div class="fp-fill" style="width:97%"></div></div>
+                <div class="fp-eye">Operação</div>
+                <div class="fp-big">99<span style="font-size:16px;color:rgba(255,255,255,.4)">%</span></div>
+                <div class="fp-unit">Uptime da esteira</div>
+                <div class="fp-bar"><div class="fp-fill" style="width:99%"></div></div>
                 <div class="fp-status"><div class="fp-sdot"></div> ATIVO</div>
             </div>
 
@@ -714,19 +714,19 @@
                 <!-- Metrics -->
                 <div class="metrics-row">
                     <div class="metric">
-                        <div class="m-label">Altura Pico</div>
-                        <div class="m-val blue">0.83<span style="font-size:10px;opacity:.5">m</span></div>
-                        <div class="m-change">↑ +0.03m / 5s</div>
+                        <div class="m-label">Leitura LDR</div>
+                        <div class="m-val blue">1820<span style="font-size:10px;opacity:.5"> ADC</span></div>
+                        <div class="m-change">Faixa nominal</div>
                     </div>
                     <div class="metric">
-                        <div class="m-label">Desvio Lat.</div>
-                        <div class="m-val warn">12<span style="font-size:10px;opacity:.5">mm</span></div>
-                        <div class="m-change">Limite: 15mm</div>
+                        <div class="m-label">Feixe Laser</div>
+                        <div class="m-val ok">ALINHADO</div>
+                        <div class="m-change">100% visibilidade</div>
                     </div>
                     <div class="metric">
-                        <div class="m-label">Pistão</div>
-                        <div class="m-val ok">STANDBY</div>
-                        <div class="m-change">Pronto</div>
+                        <div class="m-label">Esteira</div>
+                        <div class="m-val ok">RUNNING</div>
+                        <div class="m-change">Em operação</div>
                     </div>
                     <div class="metric">
                         <div class="m-label">Uptime</div>
@@ -752,41 +752,37 @@
 <!-- ══ TICKER ══ -->
 <div class="ticker">
     <div class="ticker-track" id="ticker-inner">
-        <div class="t-item"><span class="t-key">SENSOR_01</span><span class="t-val">SICK LMS511</span><span class="t-ok">● ONLINE</span></div>
+        <div class="t-item"><span class="t-key">SENSOR_01</span><span class="t-val">ESP32 + LDR</span><span class="t-ok">● ONLINE</span></div>
         <div class="t-item t-sep">·</div>
-        <div class="t-item"><span class="t-key">ALTURA_PICO</span><span class="t-val">0.83m</span></div>
+        <div class="t-item"><span class="t-key">FEIXE_LASER</span><span class="t-val">KY-008</span><span class="t-ok">● ALINHADO</span></div>
         <div class="t-item t-sep">·</div>
-        <div class="t-item"><span class="t-key">DESVIO_LAT</span><span class="t-warn">12mm</span></div>
+        <div class="t-item"><span class="t-key">LEITURA_ADC</span><span class="t-val">1820</span></div>
         <div class="t-item t-sep">·</div>
-        <div class="t-item"><span class="t-key">PISTÃO</span><span class="t-val">STANDBY</span></div>
+        <div class="t-item"><span class="t-key">ESTEIRA_#1</span><span class="t-ok">● RUNNING</span></div>
         <div class="t-item t-sep">·</div>
-        <div class="t-item"><span class="t-key">SENSOR_02</span><span class="t-val">KEYENCE LJ-X8400</span><span class="t-ok">● ONLINE</span></div>
+        <div class="t-item"><span class="t-key">LATÊNCIA</span><span class="t-val">&lt; 80ms</span></div>
         <div class="t-item t-sep">·</div>
-        <div class="t-item"><span class="t-key">UPTIME</span><span class="t-val">99.97%</span></div>
+        <div class="t-item"><span class="t-key">UPTIME</span><span class="t-val">99.9%</span></div>
         <div class="t-item t-sep">·</div>
-        <div class="t-item"><span class="t-key">ESTEIRA_#3</span><span class="t-val">OPERANDO</span></div>
+        <div class="t-item"><span class="t-key">TAXA_AMOSTRAGEM</span><span class="t-val">50 Hz</span></div>
         <div class="t-item t-sep">·</div>
-        <div class="t-item"><span class="t-key">ÚLTIMA_DETECÇÃO</span><span class="t-val">14:32:07</span></div>
+        <div class="t-item"><span class="t-key">TELEMETRIA</span><span class="t-ok">● NORMAL</span></div>
         <div class="t-item t-sep">·</div>
-        <div class="t-item"><span class="t-key">ACCION.</span><span class="t-ok">0 hoje</span></div>
+        <div class="t-item"><span class="t-key">SENSOR_01</span><span class="t-val">ESP32 + LDR</span><span class="t-ok">● ONLINE</span></div>
         <div class="t-item t-sep">·</div>
-        <div class="t-item"><span class="t-key">SENSOR_01</span><span class="t-val">SICK LMS511</span><span class="t-ok">● ONLINE</span></div>
+        <div class="t-item"><span class="t-key">FEIXE_LASER</span><span class="t-val">KY-008</span><span class="t-ok">● ALINHADO</span></div>
         <div class="t-item t-sep">·</div>
-        <div class="t-item"><span class="t-key">ALTURA_PICO</span><span class="t-val">0.83m</span></div>
+        <div class="t-item"><span class="t-key">LEITURA_ADC</span><span class="t-val">1820</span></div>
         <div class="t-item t-sep">·</div>
-        <div class="t-item"><span class="t-key">DESVIO_LAT</span><span class="t-warn">12mm</span></div>
+        <div class="t-item"><span class="t-key">ESTEIRA_#1</span><span class="t-ok">● RUNNING</span></div>
         <div class="t-item t-sep">·</div>
-        <div class="t-item"><span class="t-key">PISTÃO</span><span class="t-val">STANDBY</span></div>
+        <div class="t-item"><span class="t-key">LATÊNCIA</span><span class="t-val">&lt; 80ms</span></div>
         <div class="t-item t-sep">·</div>
-        <div class="t-item"><span class="t-key">SENSOR_02</span><span class="t-val">KEYENCE LJ-X8400</span><span class="t-ok">● ONLINE</span></div>
+        <div class="t-item"><span class="t-key">UPTIME</span><span class="t-val">99.9%</span></div>
         <div class="t-item t-sep">·</div>
-        <div class="t-item"><span class="t-key">UPTIME</span><span class="t-val">99.97%</span></div>
+        <div class="t-item"><span class="t-key">TAXA_AMOSTRAGEM</span><span class="t-val">50 Hz</span></div>
         <div class="t-item t-sep">·</div>
-        <div class="t-item"><span class="t-key">ESTEIRA_#3</span><span class="t-val">OPERANDO</span></div>
-        <div class="t-item t-sep">·</div>
-        <div class="t-item"><span class="t-key">ÚLTIMA_DETECÇÃO</span><span class="t-val">14:32:07</span></div>
-        <div class="t-item t-sep">·</div>
-        <div class="t-item"><span class="t-key">ACCION.</span><span class="t-ok">0 hoje</span></div>
+        <div class="t-item"><span class="t-key">TELEMETRIA</span><span class="t-ok">● NORMAL</span></div>
     </div>
 </div>
 
@@ -924,12 +920,12 @@
             <div class="stc-head">
                 <div class="stc-icon" style="background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.15)">◈</div>
                 <div>
-                    <div class="stc-label">Pistão Pneumático</div>
-                    <div class="stc-sub">Acionamento por desvio detectado</div>
+                    <div class="stc-label">Relé de Parada</div>
+                    <div class="stc-sub">Atuação imediata em caso de desalinhamento</div>
                 </div>
                 <span class="stc-badge sb-b">STANDBY</span>
             </div>
-            <div class="stc-prog"><div class="stcp-fill" style="width:97%"></div></div>
+            <div class="stc-prog"><div class="stcp-fill" style="width:100%"></div></div>
         </div>
 
         <div class="st-card reveal" style="transition-delay:.2s">
