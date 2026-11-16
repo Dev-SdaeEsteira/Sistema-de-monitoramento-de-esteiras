@@ -166,7 +166,8 @@
         .btn-blue:hover{background:var(--blue-500);box-shadow:0 0 16px rgba(33,150,243,.35);}
         .btn-ghost{background:white;color:var(--blue-300);border-color:rgba(37,99,235,.35);}
         .btn-ghost:hover{background:rgba(37,99,235,.08);}
-        .btn-danger{background:rgba(239,68,68,.14);color:#FCA5A5;border-color:rgba(239,68,68,.38);}
+        .btn-danger{background:rgba(239,68,68,.1);color:var(--ruby);border-color:rgba(239,68,68,.25);font-size:13px;}
+        .btn-danger:hover{background:rgba(239,68,68,.18);}
 
         /* TOAST */
         .toast{position:fixed;bottom:22px;right:22px;width:310px;background:white;border:1px solid #D1DCF0;
@@ -324,20 +325,17 @@
                 <span class="sc-uptime">Esteira: <span th:text="${s.esteira != null ? s.esteira.nome : '—'}">—</span>
                     &nbsp;·&nbsp;Último sinal: <span th:text="${s.ultimaLeituraTexto}">—</span>
                 </span>
-                <div style="display:flex;gap:8px;">
-                    <a th:href="@{/sensores/detalhe/{id}(id=${s.id})}"
-                       style="font-family:var(--font-mono);font-size:11px;color:#2563EB;text-decoration:none;">Detalhe</a>
-                    <a th:href="@{/sensores/editar/{id}(id=${s.id})}"
-                       style="font-family:var(--font-mono);font-size:11px;color:#2563EB;text-decoration:none;">Editar</a>
+                <div style="display:flex;gap:6px;">
+                    <a th:href="@{/sensores/detalhe/{id}(id=${s.id})}" class="btn btn-ghost" style="font-size:13px;padding:4px 10px;text-decoration:none;">Detalhe</a>
+                    <a th:href="@{/sensores/editar/{id}(id=${s.id})}" class="btn btn-ghost" style="font-size:13px;padding:4px 10px;text-decoration:none;">✏ Editar</a>
                     <!-- CORRIGIDO (S5): exclusão agora é POST, não GET (era vulnerável a CSRF via link) -->
                     <form th:action="@{/sensores/deletar/{id}(id=${s.id})}" method="post"
                           style="display:inline;margin:0;">
                         <th:block th:replace="~{fragments/csrf :: token}"/>
-                        <button type="submit"
-                                class="sdae-confirm-delete"
-                                data-confirm-titulo="Deletar este sensor?"
+                        <button type="submit" class="btn btn-danger sdae-confirm-delete"
+                                data-confirm-titulo="Excluir este sensor?"
                                 data-confirm-mensagem="Esta ação não pode ser desfeita."
-                                style="font-family:var(--font-mono);font-size:11px;color:#EF4444;background:none;border:none;padding:0;cursor:pointer;text-decoration:none;">Deletar</button>
+                                style="font-size:13px;padding:4px 10px;">✕</button>
                     </form>
                 </div>
             </div>
