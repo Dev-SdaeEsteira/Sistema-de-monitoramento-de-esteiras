@@ -1,14 +1,15 @@
-# Auto detect text files and perform LF normalization
+# Normalização de finais de linha
 * text=auto
 
-# Configuração do GitHub Linguist
-*.java linguist-detectable=true
-*.html linguist-detectable=true
-*.js linguist-detectable=true
-*.css linguist-detectable=true
-esp32/* linguist-language=C++
+# Mapeamento explícito de linguagens para o GitHub Linguist
+*.java linguist-language=Java
+*.html linguist-language=HTML
+*.js linguist-language=JavaScript
+*.css linguist-language=CSS
 
-# Arquivos utilitários / wrappers desconsiderados das estatísticas de código
-mvnw linguist-vendored=true
-mvnw.cmd linguist-vendored=true
-.mvn/** linguist-vendored=true
+# Ignorar wrappers e configurações de build nas estatísticas de código
+mvnw linguist-vendored
+mvnw.cmd linguist-vendored
+.mvn/** linguist-vendored
+HELP.md linguist-documentation
+README-SETUP.md linguist-documentation
