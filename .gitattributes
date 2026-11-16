@@ -1,0 +1,15 @@
+# Normalização de finais de linha
+* text=auto
+
+# Mapeamento explícito de linguagens para o GitHub Linguist
+*.java linguist-language=Java
+*.html linguist-language=HTML
+*.js linguist-language=JavaScript
+*.css linguist-language=CSS
+
+# Ignorar wrappers e configurações de build nas estatísticas de código
+mvnw linguist-vendored
+mvnw.cmd linguist-vendored
+.mvn/** linguist-vendored
+HELP.md linguist-documentation
+README-SETUP.md linguist-documentation

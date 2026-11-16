@@ -1,0 +1,24 @@
+# Build outputs
+target/
+build/
+*.class
+
+# Maven
+.mvn/
+!.mvn/wrapper/maven-wrapper.jar
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.project
+.classpath
+.settings/
+
+# OS / Archives
+.DS_Store
+Thumbs.db
+*.log
+*.zip
