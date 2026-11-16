@@ -187,7 +187,7 @@ function atualizarAnimacaoPrincipal(esteiras) {
   }
 
   if (beam) {
-    beam.textContent = algumComLaser ? 'Laser: Feixe Detectado' : 'Laser: Feixe Interrompido';
+    beam.textContent = algumComLaser ? 'Sensor IR: Sinal Detectado' : 'Sensor IR: Sinal Interrompido';
   }
 }
 

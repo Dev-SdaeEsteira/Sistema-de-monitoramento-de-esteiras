@@ -24,21 +24,21 @@ usuário no sistema web e o ESP32 físico que vai monitorar a esteira.
    firmware (arquivo .ino)
         │
         ▼
-6. ESP32 liga, conecta no Wi-Fi, amostra o LDR a 40Hz (25ms)
-   com histerese/debounce e a cada 2,5 segundos manda pro servidor:
+6. ESP32 liga, conecta no Wi-Fi, amostra o LDR e conta os pulsos do IR LM393
+   e a cada 2 segundos manda pro servidor:
 
        POST /api/sensores/{SENSOR_ID}/leitura
        Header: X-API-Key: <chave do sensor>
-       Body:   {"valorLdr": 1840, "laserDetectado": true, "pulsoDetectado": true}
+       Body:   {"valorLdr": 3000, "pulsoDetectado": true}
         │
         ▼
 7. Backend (SensorRestController → SensorService):
      - Confere se a chave bate com a do sensor (comparação segura)
      - Salva a telemetria no sensor e avalia o estado da esteira (RUNNING/STOPPED/OFFLINE)
      - Calcula o nível de risco automaticamente:
-         Laser detectado + pulso → NORMAL
-         Feixe interrompido (com pulso) → ATENÇÃO
-         Feixe interrompido (sem pulso) → CRÍTICO
+         Sinal presente + pulso → NORMAL
+         Sinal interrompido (com pulso) → ATENÇÃO
+         Sinal interrompido (sem pulso) → CRÍTICO
      - Em transições de estado ou risco, gera Alerta e EventoEsteira
      - Grava um registro em LeituraHistorico (pro
        gráfico de histórico do sensor)
@@ -71,7 +71,7 @@ usuário no sistema web e o ESP32 físico que vai monitorar a esteira.
   API com um botão de copiar.
 - Ao cadastrar um sensor novo, o sistema já redireciona direto pra tela
   de edição dele (antes ia pra lista), pra você já sair copiando a chave.
-- Firmware `esp32/sdae_sensor_esteira/sdae_sensor_esteira.ino` pronto
+- Firmware `firmware/sdae_esp32_ldr_ir.ino` (módulo IR LM393 + LDR) pronto
   pra gravar no ESP32.
 
 ## Testando sem o ESP32 ainda montado
@@ -84,12 +84,12 @@ vai mandar:
 curl -X POST http://localhost:8080/api/sensores/1/leitura \
   -H "Content-Type: application/json" \
   -H "X-API-Key: COLE_AQUI_A_CHAVE_DO_SENSOR_1" \
-  -d "{\"valorLdr\": 1840, \"laserDetectado\": true, \"pulsoDetectado\": true}"
+  -d "{\"valorLdr\": 3000, \"pulsoDetectado\": true}"
 ```
 
 Se funcionar, a resposta é algo como:
 ```json
-{"success": true, "sensorId": 1, "valorLdr": 1840, "laserDetectado": true, "pulsoDetectado": true, "estadoEsteira": "RUNNING", "nivelRisco": "NORMAL"}
+{"success": true, "sensorId": 1, "valorLdr": 3000, "laserDetectado": true, "pulsoDetectado": true, "estadoEsteira": "RUNNING", "nivelRisco": "NORMAL"}
 ```
 
 E você deve ver o valor atualizado na tela de Sensores e, se o nível não
@@ -99,33 +99,30 @@ for NORMAL, um novo Alerta na tela de Relatórios.
 
 1. Instale o pacote de placas **ESP32** no Arduino IDE (Board Manager →
    busque "esp32" → instale o pacote da Espressif).
-2. Abra `esp32/sdae_sensor_esteira/sdae_sensor_esteira.ino`.
+2. Abra `firmware/sdae_esp32_ldr_ir.ino`.
 3. Edite as constantes no topo do arquivo:
-   - `WIFI_SSID` / `WIFI_PASSWORD` — sua rede Wi-Fi.
-   - `SERVER_HOST` — o **IP local** do computador rodando o Spring Boot
+   - `WIFI_SSID` / `WIFI_SENHA` — sua rede Wi-Fi.
+   - `URL` — URL do endpoint com o **IP local** do PC rodando o Spring Boot
      (não use `localhost`, o ESP32 é outro dispositivo na rede). Pra
      descobrir: `ipconfig` no Windows, procure "Endereço IPv4".
-   - `SENSOR_ID` e `API_KEY` — pegue na tela de edição do sensor.
+   - `API_KEY` — pegue na tela de edição do sensor.
 4. Selecione a placa certa em **Ferramentas → Placa** (ex: "ESP32 Dev
    Module") e a porta USB correta.
 5. Grave o código (botão de upload) e abra o **Monitor Serial** (115200
-   baud) pra acompanhar as leituras e calibrar (ver comentário no topo
-   do `.ino` sobre `LDR_THRESHOLD` e `HISTERESE`).
+   baud) pra acompanhar as leituras de LDR e pulsos do IR LM393.
 
-## Ligação física (resumo — detalhes no `.ino`)
+## Ligação física (Módulo IR LM393 + LDR)
 
-| Componente        | Pino ESP32 |
-|--------------------|------------|
-| Laser VCC          | 3V3        |
-| Laser GND          | GND        |
-| LDR (módulo) VCC   | 3V3        |
-| LDR (módulo) GND   | GND        |
-| LDR (módulo) AO    | GPIO 34    |
+| Componente           | Pino ESP32 |
+|----------------------|------------|
+| IR LM393 VCC         | 3V3        |
+| IR LM393 GND         | GND        |
+| IR LM393 OUT (D0)    | GPIO 27    |
+| LDR (módulo/divisor) | GPIO 34    |
 
-O laser fica sempre aceso, apontado pro LDR (ou refletindo numa
-superfície fixa perto da esteira). Quando a esteira treme, o feixe balança
-um pouco e a leitura do LDR oscila mais — é essa oscilação que o firmware
-mede e transforma em porcentagem.
+O módulo IR LM393 gera pulsos digitais quando a passagem é detectada (contados
+via interrupção no GPIO 27), enquanto o sensor LDR no GPIO 34 mede o nível de
+luz ambiente/feixe para validação de obstrução contra o ldrThreshold.
 
 ## Coisas para ter em mente (próximos passos possíveis)
 

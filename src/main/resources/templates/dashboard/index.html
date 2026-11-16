@@ -387,7 +387,7 @@
         <div class="card">
             <div class="card-head">
                 <div>
-                    <div class="card-title">Monitoramento Físico: Laser + LDR</div>
+                    <div class="card-title">Monitoramento Físico: Módulo IR LM393 + LDR</div>
                     <span class="card-sub" id="beltSubText">Status em tempo real</span>
                 </div>
                 <span class="chip chip-ok" id="mainBeltStatusChip">Operando</span>
@@ -397,12 +397,12 @@
                     <div class="roller L"></div>
                     <div class="roller R"></div>
                     <div class="belt-track" id="mainBeltTrack"></div>
-                    <div class="sbeam" style="left:50%;" title="Feixe do Laser KY-008"></div>
+                    <div class="sbeam" style="left:50%;" title="Sinal do Módulo IR LM393"></div>
                 </div>
                 <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:11px;font-family:var(--font-mono);color:#64748B;">
                     <span>ESP32 ADC: GPIO 34 (LDR)</span>
-                    <span id="laserBeamStatus">Laser: Ativo</span>
-                    <span>Modo: Detecção de Feixe e Pulsos</span>
+                    <span id="laserBeamStatus">Sensor IR: Ativo</span>
+                    <span>Modo: Detecção de Sinal e Pulsos</span>
                 </div>
             </div>
         </div>
@@ -421,7 +421,7 @@
                         <th>Sensor</th>
                         <th>Status</th>
                         <th style="text-align:right;">LDR</th>
-                        <th>Laser</th>
+                        <th>Sinal IR</th>
                         <th>Último Pulso</th>
                         <th>Última Comunicação</th>
                     </tr>

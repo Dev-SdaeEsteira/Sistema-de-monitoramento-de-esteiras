@@ -88,6 +88,27 @@ class SensorApiIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
+    @DisplayName("POST /api/sensores/{id}/leitura com payload IR LM393 e LDR deve retornar 200 e estado RUNNING")
+    void registrarLeitura_moduloIrLm393_deveRetornar200ERunning() throws Exception {
+        String payload = """
+            {
+                "valorLdr": 3000,
+                "pulsoDetectado": true
+            }
+        """;
+
+        mockMvc.perform(post("/api/sensores/" + sensor.getId() + "/leitura")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-API-Key", API_KEY)
+                        .content(payload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.valorLdr").value(3000))
+                .andExpect(jsonPath("$.pulsoDetectado").value(true))
+                .andExpect(jsonPath("$.estadoEsteira").value("RUNNING"));
+    }
+
+    @Test
     @DisplayName("POST /api/sensores/{id}/leitura com API Key incorreta deve retornar 401")
     void registrarLeitura_apiKeyIncorreta_deveRetornar401() throws Exception {
         String payload = """

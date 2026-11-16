@@ -65,8 +65,8 @@ public class DataSeeder implements CommandLineRunner {
             Esteira e3 = esteiraRepository.save(new Esteira("Esteira 03 — Alimentação do Silo",  "Setor C — Beneficiamento",   false));
 
             // Sensores (NivelRisco calculado automaticamente pelo SensorService)
-            sensorService.salvar(new Sensor("Sensor Laser LDR 01", 0.0, NivelRisco.NORMAL, e1));
-            sensorService.salvar(new Sensor("Sensor Laser LDR 02", 0.0, NivelRisco.NORMAL, e2));
+            sensorService.salvar(new Sensor("Sensor IR LM393 + LDR 01", 0.0, NivelRisco.NORMAL, e1));
+            sensorService.salvar(new Sensor("Sensor IR LM393 + LDR 02", 0.0, NivelRisco.NORMAL, e2));
 
             // Alertas históricos de exemplo
             alertaRepository.save(new Alerta("Sistema iniciado e calibrado.",

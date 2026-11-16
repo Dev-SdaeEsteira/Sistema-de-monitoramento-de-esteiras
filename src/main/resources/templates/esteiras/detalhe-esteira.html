@@ -132,7 +132,7 @@
         <!-- Card: Sensores Vinculados & Hardware -->
         <div class="card">
             <div class="card-head">
-                <div class="card-title">Sensor Vinculado (Laser + LDR)</div>
+                <div class="card-title">Sensor Vinculado (Módulo IR LM393 + LDR)</div>
                 <span class="card-sub" th:text="${sensoresVinculados != null ? #lists.size(sensoresVinculados) : 0} + ' sensor(es)'">1 sensor</span>
             </div>
             <div class="card-body">
@@ -158,8 +158,8 @@
                         <span class="stat-value" style="font-size:16px;color:#2563EB;" th:text="${s.ultimoValorLdr != null ? s.ultimoValorLdr : 0}">1820</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-label">Laser Detectado</span>
-                        <span class="stat-value" th:text="${s.laserDetectado} ? 'Sim (Feixe Presente)' : 'Não (Interrompido)'">Sim</span>
+                        <span class="stat-label">Sinal do Sensor (IR)</span>
+                        <span class="stat-value" th:text="${s.laserDetectado} ? 'Sim (Sinal Presente)' : 'Não (Interrompido)'">Sim</span>
                     </div>
                     <div class="stat-item">
                         <span class="stat-label">Total de Pulsos</span>

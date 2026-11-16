@@ -37,7 +37,7 @@
 No setor de mineração e metalurgia (em especial no transporte contínuo de **bauxita**), as esteiras transportadoras são ativos críticos. Paradas não planejadas, rompimento de correia, desalinhamento transversal ou acúmulo excessivo de material geram custos de manutenção da ordem de centenas de milhares de reais e riscos iminentes à segurança dos operadores.
 
 O **SDAE** foi desenvolvido para resolver este problema unindo:
-* **Chão de Fábrica (IoT):** Microcontrolador **ESP32** com sensor laser (**KY-008**) e fotossensível (**KY-018 LDR**) em amostragem contínua para inspecionar o alinhamento da esteira e a cadência de passagem de carga.
+* **Chão de Fábrica (IoT):** Microcontrolador **ESP32** com módulo infravermelho IR (**LM393**) e fotossensível (**KY-018 LDR**) em amostragem contínua para inspecionar o alinhamento da esteira e a cadência de passagem de carga.
 * **Camada de Borda & Segurança:** Controle imediato de acionamento/corte elétrico de motor via relé de segurança e autenticação de dispositivo por cabeçalho criptográfico `X-API-Key`.
 * **Servidor Central (Back-end):** Aplicação robusta em **Spring Boot 3 (Java 21)** com arquitetura em camadas, agendador automático de timeouts (*watchdog*), controle de acesso por papéis (**RBAC**) e auditoria persistida.
 * **Supervisório Operacional (Front-end):** Dashboard em tempo real atualizado via polling assíncrono, mapas de esteiras, gráficos de telemetria histórica e emissão de laudos periciais em **PDF**.
@@ -52,12 +52,12 @@ O sistema adota uma arquitetura em camadas orientada a serviços (MVC + REST), d
 flowchart TD
     subgraph IoT_Hardware ["Chão de Fábrica / Nó IoT"]
         ESP32["Microcontrolador ESP32-WROOM-32"]
-        Laser["Módulo Laser KY-008 (650nm)"]
+        IR["Módulo Infravermelho IR LM393"]
         LDR["Módulo Fotossensível KY-018 (LDR)"]
         Rele["Módulo Relé (Corte Elétrico da Correia)"]
         
-        Laser -.->|"Feixe Óptico Contínuo"| LDR
-        LDR -->|"Leitura Analógica (ADC 12 bits 0–4095)"| ESP32
+        IR -->|"Pulsos Digitais (GPIO 27 - Interrupção)"| ESP32
+        LDR -->|"Leitura Analógica (ADC 12 bits 0–4095 - GPIO 34)"| ESP32
         ESP32 -->|"Atuação de Emergência"| Rele
     end
 
@@ -116,16 +116,16 @@ O nó de sensoriamento é baseado em eletrônica embarcada de baixo custo e alta
 | Componente | Função no Sistema | Pino ESP32 | Especificação Técnica |
 |---|---|---|---|
 | **ESP32-WROOM-32** | Processamento de borda, calibração e envio HTTP | — | Dual Core 240MHz, Wi-Fi 802.11 b/g/n, ADC 12 bits |
-| **Laser KY-008** | Emissor óptico de feixe focalizado | `GPIO 23` | Comprimento de onda 650nm (vermelho), 5V, 5mW |
+| **Módulo IR LM393** | Sensor óptico de presença/velocidade por infravermelho | `GPIO 27` | Comparador LM393, saída digital (D0), detecção de pulsos por interrupção |
 | **LDR KY-018** | Receptor óptico de intensidade luminosa | `GPIO 34 (ADC1)` | Divisor de tensão com resistor pull-down de 10kΩ |
 | **Módulo Relé 5V** | Interrupção imediata do contator do motor | `GPIO 22` | Contatos NA/NF, acionamento por nível lógico |
-| **LED Indicador** | Status visual da conexão Wi-Fi / Feixe | `GPIO 2` | LED SMD onboard |
+| **LED Indicador** | Status visual da conexão Wi-Fi / Sinal | `GPIO 2` | LED SMD onboard |
 
 ### Algoritmo de Borda do ESP32
-1. O laser emite um feixe contínuo alinhado com o sensor LDR no lado oposto da correia.
-2. Em operação normal, o feixe atinge o LDR com intensidade máxima (leitura ADC ~ 2500 a 4095).
-3. Quando a correia ou carga passa, o feixe é cortado momentaneamente (**pulso detectado**).
-4. Se o feixe ficar interrompido prolongadamente sem retornar (desalinhamento lateral, esteira descalçada ou acúmulo de pó), o nó sinaliza anomalia e o back-end classifica o risco como **CRÍTICO**.
+1. O módulo infravermelho IR LM393 monitora a passagem/cadência da esteira via interrupções digitais no GPIO 27 (`pulsoDetectado`).
+2. O sensor LDR afere a luminosidade continuamente no GPIO 34 (`valorLdr`), permitindo validar a presença de sinal ou obstrução contra o limiar da esteira (`ldrThreshold`).
+3. A cada 2 segundos, o ESP32 transmite via HTTP POST a leitura combinada para a API do SDAE.
+4. Se os pulsos cessarem por mais de 15 segundos ou a leitura indicar anormalidade, o back-end altera o estado para **STOPPED** ou acusa risco **CRÍTICO**.
 
 ---
 
@@ -351,14 +351,15 @@ Para apresentar o projeto com excelência em menos de 10 minutos:
 3. **Dashboard em Tempo Real & Telemetria:**
    * Abra a tela `/dashboard`. Mostre os KPIs dinâmicos, o canvas com animação da correia e o gráfico LDR.
 4. **Simulação de Telemetria IoT via cURL (Efeito Demonstração Seguro):**
-   * Envie uma leitura simulando o ESP32 enviando feixe normal:
+   * Envie uma leitura simulando o ESP32 com módulo IR LM393 + LDR operando normalmente:
      ```bash
      curl -X POST http://localhost:8080/api/sensores/1/leitura \
        -H "Content-Type: application/json" \
        -H "X-API-Key: sua-chave-aqui" \
-       -d '{"valorLdr": 1820, "laserDetectado": true, "pulsoDetectado": true}'
+       -d '{"valorLdr": 3000, "pulsoDetectado": true}'
      ```
-   * Em seguida, envie uma leitura com o feixe cortado (`"laserDetectado": false`) e veja o alerta crítico e a esteira alterando o status em tempo real.
+   * Em seguida, envie uma leitura simulando parada de pulsos (`"pulsoDetectado": false`) ou sinal ausente e veja a esteira alterando o status em tempo real.
+   * *Nota de compatibilidade: por retrocompatibilidade com o banco e versões legadas de firmware, o backend também aceita o payload com `"laserDetectado"`.*
 5. **Emissão de Laudo Técnico:**
    * Navegue até `/relatorios` e clique em **"Exportar PDF Completo"**. Demonstre o relatório corporativo estruturado com tabelas, cabeçalhos oficiais e indicadores formatados pelo OpenPDF.
 

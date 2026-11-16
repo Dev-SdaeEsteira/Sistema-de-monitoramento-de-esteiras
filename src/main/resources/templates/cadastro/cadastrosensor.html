@@ -63,7 +63,7 @@
     <div class="page-header">
         <div>
             <div class="page-title">Cadastrar Novo Sensor</div>
-            <div class="page-sub">Vincule um sensor óptico (Laser + LDR) a uma esteira existente</div>
+            <div class="page-sub">Vincule um sensor óptico (Módulo IR LM393 + LDR) a uma esteira existente</div>
         </div>
         <a href="/sensores" class="btn btn-ghost">← Voltar</a>
     </div>
@@ -87,7 +87,7 @@
                     <div class="form-group">
                         <label class="form-label" for="modelo">Modelo do Sensor <span>*</span></label>
                         <input type="text" class="form-input" id="modelo" th:field="*{modelo}"
-                               placeholder="Ex.: ESP32-Laser-LDR-01" required>
+                               placeholder="Ex.: ESP32-IR-LM393-LDR-01" required>
                     </div>
 
                     <input type="hidden" id="leituraAtual" th:field="*{leituraAtual}" value="0.0">
