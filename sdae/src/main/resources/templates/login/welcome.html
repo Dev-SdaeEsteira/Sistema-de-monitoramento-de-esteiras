@@ -78,19 +78,18 @@
             position:relative;min-height:100vh;
             display:flex;flex-direction:column;align-items:center;justify-content:center;
             overflow:hidden;
-            background:linear-gradient(160deg,#060E22 0%,#0A1833 45%,#0D2460 100%);
-        }
-        #three-canvas{
-            position:absolute;inset:0;width:100%;height:100%;
-            z-index:1;opacity:.75;
+            background:radial-gradient(circle at 50% 25%, rgba(37,99,235,.15) 0%, transparent 60%),
+                       radial-gradient(circle at 80% 60%, rgba(6,182,212,.08) 0%, transparent 50%),
+                       linear-gradient(160deg,#060E22 0%,#0A1833 45%,#0D2460 100%);
         }
         .hero-grid-overlay{
             position:absolute;inset:0;z-index:2;
             background-image:
-                    linear-gradient(rgba(37,99,235,.06) 1px,transparent 1px),
-                    linear-gradient(90deg,rgba(37,99,235,.06) 1px,transparent 1px);
+                    linear-gradient(rgba(37,99,235,.07) 1px,transparent 1px),
+                    linear-gradient(90deg,rgba(37,99,235,.07) 1px,transparent 1px);
             background-size:56px 56px;
             mask-image:radial-gradient(ellipse 80% 70% at 50% 50%,black 30%,transparent 80%);
+            pointer-events:none;
         }
         .hero-content{
             position:relative;z-index:10;
@@ -603,7 +602,6 @@
 
 <!-- ══ HERO ══ -->
 <section class="hero">
-    <canvas id="three-canvas"></canvas>
     <div class="hero-grid-overlay"></div>
 
     <div class="hero-content">
@@ -1035,289 +1033,7 @@
     </div>
 </footer>
 
-<!-- Three.js -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-    /* ── THREE.JS: Conveyor Belt with Laser Sensors ── */
-    (function(){
-        const canvas = document.getElementById('three-canvas');
-        const W = canvas.clientWidth, H = canvas.clientHeight;
-        canvas.width = W; canvas.height = H;
-
-        const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        renderer.setSize(W, H);
-        renderer.setClearColor(0x000000, 0);
-        renderer.shadowMap.enabled = true;
-
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(45, W/H, 0.1, 200);
-        camera.position.set(0, 7, 18);
-        camera.lookAt(0, 1, 0);
-
-        /* ── Lighting ── */
-        scene.add(new THREE.AmbientLight(0x1a2a4a, 0.8));
-        const dirLight = new THREE.DirectionalLight(0x4488ff, 0.6);
-        dirLight.position.set(5, 10, 5);
-        dirLight.castShadow = true;
-        scene.add(dirLight);
-        const pointLight1 = new THREE.PointLight(0xff2222, 1.5, 20);
-        pointLight1.position.set(-6, 3, 0);
-        scene.add(pointLight1);
-        const pointLight2 = new THREE.PointLight(0xff2222, 1.5, 20);
-        pointLight2.position.set(6, 3, 0);
-        scene.add(pointLight2);
-
-        /* ── Belt Frame ── */
-        const beltGroup = new THREE.Group();
-
-        // Belt surface (long flat box)
-        const beltGeo = new THREE.BoxGeometry(22, 0.22, 3);
-        const beltMat = new THREE.MeshPhongMaterial({ color: 0x1a2a3a, shininess: 20 });
-        const belt = new THREE.Mesh(beltGeo, beltMat);
-        belt.position.y = 0;
-        belt.receiveShadow = true;
-        beltGroup.add(belt);
-
-        // Belt stripes (moving pattern — we'll animate via texture offset)
-        const stripeCount = 30;
-        for(let i = 0; i < stripeCount; i++){
-            const stripeGeo = new THREE.BoxGeometry(0.12, 0.24, 3.1);
-            const stripeMat = new THREE.MeshPhongMaterial({ color: 0x233344, transparent: true, opacity: 0.7 });
-            const stripe = new THREE.Mesh(stripeGeo, stripeMat);
-            stripe.position.set(-11 + i * (22/stripeCount), 0.01, 0);
-            stripe.userData.stripeIndex = i;
-            beltGroup.add(stripe);
-        }
-
-        // Left roller
-        const rollerGeo = new THREE.CylinderGeometry(0.45, 0.45, 3.4, 16);
-        const rollerMat = new THREE.MeshPhongMaterial({ color: 0x334455, shininess: 60 });
-        const rollerL = new THREE.Mesh(rollerGeo, rollerMat);
-        rollerL.rotation.x = Math.PI / 2;
-        rollerL.position.set(-11, 0, 0);
-        beltGroup.add(rollerL);
-        // Right roller
-        const rollerR = rollerL.clone();
-        rollerR.position.set(11, 0, 0);
-        beltGroup.add(rollerR);
-
-        // Frame legs (side supports)
-        [-1.65, 1.65].forEach(z => {
-            [-8, -2, 4, 10].forEach(x => {
-                const legGeo = new THREE.BoxGeometry(0.18, 2.2, 0.18);
-                const legMat = new THREE.MeshPhongMaterial({ color: 0x222d3a });
-                const leg = new THREE.Mesh(legGeo, legMat);
-                leg.position.set(x, -1.1, z);
-                beltGroup.add(leg);
-            });
-        });
-
-        // Side rails
-        [-1.6, 1.6].forEach(z => {
-            const railGeo = new THREE.BoxGeometry(22, 0.15, 0.12);
-            const railMat = new THREE.MeshPhongMaterial({ color: 0x2a3a4a, shininess: 80 });
-            const rail = new THREE.Mesh(railGeo, railMat);
-            rail.position.set(0, 0.22, z);
-            beltGroup.add(rail);
-        });
-
-        beltGroup.position.y = 0.8;
-        scene.add(beltGroup);
-
-        /* ── Sensor Towers (laser emitters) ── */
-        const sensorPositions = [-5, 1, 7];
-        const sensorGroup = new THREE.Group();
-        const laserBeams = [];
-        const laserGlows = [];
-
-        sensorPositions.forEach(x => {
-            // Tower post
-            const postGeo = new THREE.BoxGeometry(0.2, 3.2, 0.2);
-            const postMat = new THREE.MeshPhongMaterial({ color: 0x1e3050, shininess: 40 });
-            const post = new THREE.Mesh(postGeo, postMat);
-            post.position.set(x, 2.5, -2.8);
-            sensorGroup.add(post);
-
-            // Sensor head
-            const headGeo = new THREE.BoxGeometry(0.55, 0.4, 0.55);
-            const headMat = new THREE.MeshPhongMaterial({ color: 0x0d1e30, emissive: 0x110000, shininess: 90 });
-            const head = new THREE.Mesh(headGeo, headMat);
-            head.position.set(x, 4.2, -2.5);
-            sensorGroup.add(head);
-
-            // Lens (red)
-            const lensGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.15, 12);
-            const lensMat = new THREE.MeshPhongMaterial({ color: 0xff2200, emissive: 0xff1100, emissiveIntensity: 1.5 });
-            const lens = new THREE.Mesh(lensGeo, lensMat);
-            lens.rotation.x = Math.PI / 2;
-            lens.position.set(x, 4.2, -2.2);
-            sensorGroup.add(lens);
-
-            // Laser beam (thin plane from sensor to belt)
-            const beamGeo = new THREE.PlaneGeometry(0.05, 3.5);
-            const beamMat = new THREE.MeshBasicMaterial({
-                color: 0xff1100,
-                transparent: true,
-                opacity: 0.7,
-                side: THREE.DoubleSide
-            });
-            const beam = new THREE.Mesh(beamGeo, beamMat);
-            beam.position.set(x, 2.7, -2.2);
-            beam.rotation.x = Math.PI / 2 - 0.18;
-            sensorGroup.add(beam);
-            laserBeams.push({ mesh: beam, mat: beamMat });
-
-            // Laser glow line (horizontal sweep line on belt)
-            const glowGeo = new THREE.PlaneGeometry(3.2, 0.04);
-            const glowMat = new THREE.MeshBasicMaterial({
-                color: 0xff2200,
-                transparent: true,
-                opacity: 0.9,
-                side: THREE.DoubleSide
-            });
-            const glow = new THREE.Mesh(glowGeo, glowMat);
-            glow.rotation.x = -Math.PI / 2;
-            glow.position.set(x, 1.11, 0);
-            sensorGroup.add(glow);
-            laserGlows.push({ mesh: glow, mat: glowMat });
-
-            // Laser hit particles (sparks effect)
-            const sparkGeo = new THREE.SphereGeometry(0.045, 6, 6);
-            const sparkMat = new THREE.MeshBasicMaterial({ color: 0xff4400, transparent: true, opacity: 0.85 });
-            [-1.2, -0.4, 0.4, 1.2].forEach(zo => {
-                const spark = new THREE.Mesh(sparkGeo, sparkMat);
-                spark.position.set(x, 1.15, zo);
-                spark.userData.baseY = 1.15;
-                spark.userData.offset = Math.random() * Math.PI * 2;
-                sensorGroup.add(spark);
-            });
-        });
-
-        sensorGroup.position.y = 0;
-        scene.add(sensorGroup);
-
-        /* ── Objects on belt ── */
-        const objects = [];
-        const objectColors = [0x8B4513, 0xA0522D, 0xCD853F, 0xD2691E, 0x6B3A2A, 0xC4703E];
-
-        function createBeltObject() {
-            const type = Math.floor(Math.random() * 3);
-            let geo, mat;
-            const color = objectColors[Math.floor(Math.random() * objectColors.length)];
-            mat = new THREE.MeshPhongMaterial({ color, shininess: 15 });
-
-            if(type === 0){
-                // Box (mineral block)
-                const w = 0.7 + Math.random() * 0.6;
-                const h = 0.4 + Math.random() * 0.5;
-                const d = 0.5 + Math.random() * 0.4;
-                geo = new THREE.BoxGeometry(w, h, d);
-            } else if(type === 1){
-                // Sphere (rounded mineral)
-                const r = 0.3 + Math.random() * 0.35;
-                geo = new THREE.SphereGeometry(r, 8, 8);
-            } else {
-                // Irregular chunk (scaled box)
-                geo = new THREE.BoxGeometry(
-                    0.5 + Math.random() * 0.7,
-                    0.3 + Math.random() * 0.45,
-                    0.55 + Math.random() * 0.5
-                );
-                // Slightly tilt it
-            }
-
-            const mesh = new THREE.Mesh(geo, mat);
-            const startX = 12 + Math.random() * 2;
-            const zPos = (Math.random() - 0.5) * 1.6;
-            const baseY = type === 1
-                ? 1.1 + (geo.parameters?.radius || 0.35)
-                : 1.1 + (geo.parameters?.height || 0.4) / 2;
-            mesh.position.set(startX, baseY, zPos);
-            mesh.rotation.y = Math.random() * Math.PI;
-            mesh.rotation.z = (Math.random() - 0.5) * 0.2;
-            mesh.castShadow = true;
-            mesh.userData = {
-                speed: 0.032 + Math.random() * 0.018,
-                baseY,
-                rotSpeed: (Math.random() - 0.5) * 0.01,
-                lit: false,
-                litTimer: 0
-            };
-            scene.add(mesh);
-            objects.push(mesh);
-            return mesh;
-        }
-
-        // Spawn initial objects
-        for(let i = 0; i < 8; i++){
-            const obj = createBeltObject();
-            obj.position.x = -10 + i * 3 + Math.random() * 2;
-        }
-
-        /* ── Ground / Floor ── */
-        const floorGeo = new THREE.PlaneGeometry(40, 30);
-        const floorMat = new THREE.MeshPhongMaterial({ color: 0x080f1a, shininess: 5 });
-        const floor = new THREE.Mesh(floorGeo, floorMat);
-        floor.rotation.x = -Math.PI / 2;
-        floor.position.y = -1.1;
-        floor.receiveShadow = true;
-        scene.add(floor);
-
-        /* ── Background particle field ── */
-        const bgCount = 60;
-        const bgGeo = new THREE.BufferGeometry();
-        const bgPos = new Float32Array(bgCount * 3);
-        for(let i = 0; i < bgCount; i++){
-            bgPos[i*3]   = (Math.random()-0.5)*28;
-            bgPos[i*3+1] = Math.random()*10 - 1;
-            bgPos[i*3+2] = (Math.random()-0.5)*14 - 4;
-        }
-        bgGeo.setAttribute('position', new THREE.BufferAttribute(bgPos, 3));
-        const bgMat = new THREE.PointsMaterial({ color: 0x2244aa, size: 0.06, transparent: true, opacity: 0.5 });
-        scene.add(new THREE.Points(bgGeo, bgMat));
-
-        /* ── Resize ── */
-        window.addEventListener('resize', ()=>{
-            const w = canvas.clientWidth, h = canvas.clientHeight;
-            camera.aspect = w/h; camera.updateProjectionMatrix();
-            renderer.setSize(w, h);
-        });
-
-        /* ── Animate ── */
-        let t = 0;
-        function animate() {
-            requestAnimationFrame(animate);
-            t += 0.016;
-
-            // Move belt stripes
-            beltGroup.children.forEach(child => {
-                if (child.userData && child.userData.stripeIndex !== undefined) {
-                    child.position.x -= 0.035;
-                    if (child.position.x < -11) child.position.x = 11;
-                }
-            });
-
-            // Move bauxite chunks and recycle
-            for (let i = objects.length - 1; i >= 0; i--) {
-                const obj = objects[i];
-                obj.position.x -= obj.userData.speed;
-                obj.rotation.y += obj.userData.rotSpeed;
-                if (obj.position.x < -12) {
-                    obj.position.x = 12 + Math.random() * 2;
-                }
-            }
-
-            // Pulse laser beams
-            laserBeams.forEach((b, idx) => {
-                b.mat.opacity = 0.55 + Math.sin(t * 4 + idx) * 0.25;
-            });
-
-            renderer.render(scene, camera);
-        }
-        animate();
-    })();
-
     /* ── Scroll reveal ── */
     const observer = new IntersectionObserver(entries=>{
         entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); observer.unobserve(e.target); } });
