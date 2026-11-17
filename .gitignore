@@ -22,3 +22,6 @@ build/
 Thumbs.db
 *.log
 *.zip
+
+# Apresentação e prints (mantidos apenas localmente)
+prints-apresentacao/
