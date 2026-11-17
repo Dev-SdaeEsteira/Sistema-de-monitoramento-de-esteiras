@@ -50,6 +50,32 @@ public class FuncionarioService {
         return matricula != null && funcionarioRepository.existsByMatricula(matricula.toUpperCase());
     }
 
+    /** true se o e-mail pertence a um funcionário excluído (soft-delete). */
+    public boolean existeExcluidoPorEmail(String email) {
+        return email != null && funcionarioRepository.countExcluidosPorEmail(email.trim()) > 0;
+    }
+
+    /** true se a matrícula pertence a um funcionário excluído (soft-delete). */
+    public boolean existeExcluidoPorMatricula(String matricula) {
+        return matricula != null
+                && funcionarioRepository.countExcluidosPorMatricula(matricula.trim().toUpperCase()) > 0;
+    }
+
+    /** true se o CPF pertence a um funcionário excluído (soft-delete). */
+    public boolean existeExcluidoPorCpf(String cpf) {
+        return cpf != null && funcionarioRepository.countExcluidosPorCpf(cpf) > 0;
+    }
+
+    public Optional<Funcionario> buscarPorMatricula(String matricula) {
+        if (matricula == null) return Optional.empty();
+        return funcionarioRepository.findByMatricula(matricula.trim().toUpperCase());
+    }
+
+    public Optional<Funcionario> buscarPorCpf(String cpf) {
+        if (cpf == null) return Optional.empty();
+        return funcionarioRepository.findByCpf(cpf);
+    }
+
     public long contarPorCargo(String cargo) {
         return funcionarioRepository.countByCargo(cargo);
     }

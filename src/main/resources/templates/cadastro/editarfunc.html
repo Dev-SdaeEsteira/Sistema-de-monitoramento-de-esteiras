@@ -86,6 +86,8 @@
             <span class="info-badge" th:text="'ID #' + ${funcionario.id}">ID #1</span>
         </div>
 
+        <div th:if="${erroMsg != null or param.erro != null}" style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:4px;padding:12px 18px;color:#991B1B;font-size:15px;margin:16px 20px 0;">⚠ <span th:text="${erroMsg != null ? erroMsg : 'Erro ao salvar. Verifique os dados informados.'}">Erro ao salvar.</span></div>
+
         <form th:action="@{/admin/salvar}" th:object="${funcionario}" method="post">
             <th:block th:replace="~{fragments/csrf :: token}"/>
             <input type="hidden" th:field="*{id}"/>

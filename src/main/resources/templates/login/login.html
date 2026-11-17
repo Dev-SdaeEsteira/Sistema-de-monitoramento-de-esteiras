@@ -385,14 +385,6 @@
                 </div>
             </div>
 
-            <div class="quick-label">Acesso rápido — desenvolvimento</div>
-            <div class="quick-grid">
-                <button class="quick-btn" type="button" onclick="preencher('admin@sdae.com.br','admin123')">
-                    <div class="quick-login">admin@sdae.com.br</div>
-                    <div class="quick-nivel">Administrador</div>
-                </button>
-            </div>
-
             <button type="submit" class="btn-login">
                 <span class="btn-text">Entrar no Sistema</span>
             </button>
@@ -413,11 +405,6 @@
         const show = inp.type === 'password';
         inp.type = show ? 'text' : 'password';
         btn.textContent = show ? 'OCULTAR' : 'MOSTRAR';
-    }
-    function preencher(email, senha) {
-        document.getElementById('fLogin').value = email;
-        document.getElementById('fSenha').value = senha;
-        document.querySelector('form').submit(); // ← preenche e já envia o login
     }
     document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('fLogin').focus();

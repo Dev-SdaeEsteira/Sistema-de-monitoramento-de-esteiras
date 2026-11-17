@@ -31,8 +31,16 @@ public class CadastroController {
 
         if (sucesso != null)
             model.addAttribute("sucesso", "Cadastro realizado! Faça login para continuar.");
-        if (erro != null)
-            model.addAttribute("erro", "E-mail ou matrícula já cadastrados.");
+        if (erro != null) {
+            String msg = switch (erro) {
+                case "desativado" -> "Este e-mail ou matrícula pertence a um cadastro desativado. "
+                        + "Peça a um administrador para reativá-lo.";
+                case "senha"      -> "A senha deve ter pelo menos 6 caracteres.";
+                case "falha"      -> "Não foi possível concluir o cadastro. Verifique os dados e tente novamente.";
+                default           -> "E-mail ou matrícula já cadastrados.";
+            };
+            model.addAttribute("erro", msg);
+        }
 
         return "login/cadastro";
     }
@@ -54,12 +62,24 @@ public class CadastroController {
             @RequestParam String senha) {
 
         if (senha == null || senha.length() < 6)
-            return "redirect:/cadastro?erro=true";
+            return "redirect:/cadastro?erro=senha";
+
+        email = email.trim();
+        matricula = matricula.trim();
 
         if (funcionarioService.existePorEmail(email))
-            return "redirect:/cadastro?erro=true";
+            return "redirect:/cadastro?erro=duplicado";
         if (funcionarioService.existePorMatricula(matricula))
-            return "redirect:/cadastro?erro=true";
+            return "redirect:/cadastro?erro=duplicado";
+
+        // Funcionários excluídos (soft-delete) não aparecem nas buscas acima,
+        // mas continuam ocupando e-mail/matrícula no banco (UNIQUE). Antes isso
+        // estourava no save e caía no catch com a mensagem genérica.
+        // Por segurança, o autocadastro público NÃO reativa a conta — quem
+        // excluiu foi um administrador, então só ele pode desfazer.
+        if (funcionarioService.existeExcluidoPorEmail(email)
+                || funcionarioService.existeExcluidoPorMatricula(matricula))
+            return "redirect:/cadastro?erro=desativado";
 
         try {
             Funcionario f = new Funcionario();
@@ -81,7 +101,7 @@ public class CadastroController {
             return "redirect:/login?cadastro=true";
 
         } catch (Exception e) {
-            return "redirect:/cadastro?erro=true";
+            return "redirect:/cadastro?erro=falha";
         }
     }
 }
