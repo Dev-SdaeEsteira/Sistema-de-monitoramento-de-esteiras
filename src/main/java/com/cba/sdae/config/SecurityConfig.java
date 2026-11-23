@@ -169,8 +169,12 @@ public class SecurityConfig {
                     CookieCsrfTokenRepository csrfRepo = CookieCsrfTokenRepository.withHttpOnlyFalse();
                     csrfRepo.setCookieCustomizer(cookie -> cookie.sameSite("Lax"));
                     csrf.csrfTokenRepository(csrfRepo)
-                            .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
-                            .ignoringRequestMatchers("/api/auth/login", "/api/sensores/*/leitura", "/api/test/**");
+                            .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler());
+                    if (environment.acceptsProfiles(Profiles.of("test"))) {
+                        csrf.ignoringRequestMatchers("/api/auth/login", "/api/sensores/*/leitura", "/api/test/**");
+                    } else {
+                        csrf.ignoringRequestMatchers("/api/auth/login", "/api/sensores/*/leitura");
+                    }
                 })
                 .addFilterBefore(bruteForceProtectionFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterAfter(new OncePerRequestFilter() {

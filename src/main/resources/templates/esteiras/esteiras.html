@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -120,12 +121,28 @@
         .tl-tag{font-family:var(--font-mono);font-size:12.6px;color:var(--blue-300);}
 
         /* CHIP */
-        .chip{font-family:var(--font-mono);font-size:12.6px;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;padding:3px 9px;border-radius:20px;}
-        .chip-ok{background:rgba(0,200,151,.1);color:var(--emerald);border:1px solid rgba(0,200,151,.25);}
-        .chip-alert{background:rgba(239,68,68,.1);color:#FCA5A5;border:1px solid rgba(239,68,68,.3);animation:chipPls .8s ease-in-out infinite alternate;}
-        .chip-stop{background:rgba(245,158,11,.1);color:var(--amber);border:1px solid rgba(245,158,11,.25);}
-        .chip-maint{background:rgba(37,99,235,.08);color:var(--blue-300);border:1px solid #D1DCF0;}
+        .chip{font-family:var(--font-mono);font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;padding:3px 9px;border-radius:20px;white-space:nowrap;}
+        .chip-ok{background:rgba(16,185,129,.12);color:#047857;border:1px solid rgba(16,185,129,.3);}
+        .chip-alert{background:rgba(239,68,68,.12);color:#B91C1C;border:1px solid rgba(239,68,68,.3);animation:chipPls .8s ease-in-out infinite alternate;}
+        .chip-stop{background:rgba(239,68,68,.10);color:#DC2626;border:1px solid rgba(239,68,68,.25);}
+        .chip-maint{background:rgba(245,158,11,.12);color:#B45309;border:1px solid rgba(245,158,11,.3);}
+        .chip-off{background:rgba(100,116,139,.12);color:#475569;border:1px solid rgba(100,116,139,.25);}
         @keyframes chipPls{from{box-shadow:0 0 0 0 rgba(239,68,68,.3)}to{box-shadow:0 0 0 5px rgba(239,68,68,0)}}
+
+        /* MAPA DINÂMICO REAL DO PÁTIO */
+        .real-map-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;padding:18px;}
+        .real-map-node{display:flex;flex-direction:column;gap:8px;padding:14px;border-radius:10px;border:1.5px solid #E2E8F0;background:#FAFBFD;text-decoration:none;color:inherit;transition:all .18s;}
+        .real-map-node:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(15,23,42,.06);border-color:#93C5FD;}
+        .real-map-node.st-running{border-left:4px solid #10B981;background:rgba(16,185,129,.04);}
+        .real-map-node.st-stopped{border-left:4px solid #EF4444;background:rgba(239,68,68,.04);}
+        .real-map-node.st-maintenance{border-left:4px solid #F59E0B;background:rgba(245,158,11,.05);}
+        .real-map-node.st-offline{border-left:4px solid #64748B;background:rgba(100,116,139,.05);}
+        .real-map-track{height:6px;border-radius:999px;background:#E2E8F0;overflow:hidden;position:relative;}
+        .real-map-track-bar{height:100%;width:100%;border-radius:999px;}
+        .st-running .real-map-track-bar{background:repeating-linear-gradient(90deg,#10B981 0 12px,#34D399 12px 24px);}
+        .st-stopped .real-map-track-bar{background:#EF4444;}
+        .st-maintenance .real-map-track-bar{background:repeating-linear-gradient(90deg,#F59E0B 0 10px,#FDE68A 10px 20px);}
+        .st-offline .real-map-track-bar{background:#94A3B8;}
 
         /* BELT DETAIL CARDS */
         .belt-details-wrap{display:flex;flex-direction:column;gap:10px;}
@@ -143,7 +160,7 @@
         .belt-detail-card.has-alert::before{background:var(--ruby);opacity:1;}
         .belt-detail-card.in-maint{border-color:rgba(245,158,11,.2);}
         .belt-detail-card.in-maint::before{background:var(--amber);opacity:1;}
-        .bdc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+        .bdc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;gap:8px;}
         .bdc-code{font-family:var(--font-serif);font-size:21.6px;font-weight:700;color:#0A0E1A;}
         .bdc-line{font-size:12px;color:#4A5568;margin-top:2px;}
         .bdc-metrics{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;}
@@ -207,82 +224,83 @@
     <div class="page-header">
         <div>
             <div class="page-title">Mapa de Esteiras</div>
-            <!-- CORRIGIDO: usa dados reais do controller -->
-            <div class="page-sub" th:text="${#lists.size(esteiras)} + ' esteiras cadastradas'">0 esteiras</div>
+            <div class="page-sub" th:text="${#lists.size(esteiras)} + ' esteira(s) cadastrada(s)'">0 esteiras</div>
         </div>
         <div class="page-actions">
             <a class="btn btn-ghost" href="/esteiras">↺ Atualizar</a>
-            <!-- CORRIGIDO: URL correta para cadastro -->
-            <a class="btn btn-blue" href="/esteiras/nova">+ Nova Esteira</a>
+            <a sec:authorize="hasAnyRole('ENGENHEIRO','ADMINISTRADOR')" class="btn btn-blue" href="/esteiras/nova">+ Nova Esteira</a>
         </div>
     </div>
 
-    <!-- KPI BAR — dados reais do controller -->
+    <!-- KPI BAR — estados operacionais reais do banco -->
     <div class="kpi-bar">
-        <div class="kpi"><div class="kpi-icon ki-green">⬤</div><div>
-            <div class="kpi-val" th:text="${totalAtivas}">0</div>
-            <div class="kpi-lbl">Em Operação</div>
-            <div class="kpi-delta up">▲ Esteiras ativas</div></div></div>
-        <div class="kpi"><div class="kpi-icon ki-red">⬤</div><div>
-            <div class="kpi-val" th:text="${totalInativas}">0</div>
-            <div class="kpi-lbl">Inativas</div>
-            <div class="kpi-delta flat">● Fora de operação</div></div></div>
-        <div class="kpi"><div class="kpi-icon ki-amber">⚡</div><div>
-            <div class="kpi-val" th:text="${totalAlertas}">0</div>
-            <div class="kpi-lbl">Total de Alertas</div>
-            <div class="kpi-delta down">▲ Alertas registrados</div></div></div>
+        <div class="kpi"><div class="kpi-icon ki-green">🟢</div><div>
+            <div class="kpi-val" th:text="${totalFuncionando}">0</div>
+            <div class="kpi-lbl">Funcionando</div>
+            <div class="kpi-delta up">● Pulsos ativos</div></div></div>
+        <div class="kpi"><div class="kpi-icon ki-red">🔴</div><div>
+            <div class="kpi-val" th:text="${totalParadas}">0</div>
+            <div class="kpi-lbl">Paradas</div>
+            <div class="kpi-delta flat">● Sem movimento</div></div></div>
+        <div class="kpi"><div class="kpi-icon ki-amber">⚫</div><div>
+            <div class="kpi-val" th:text="${totalOffline}">0</div>
+            <div class="kpi-lbl">Offline</div>
+            <div class="kpi-delta down">● Sem comunicação</div></div></div>
         <div class="kpi"><div class="kpi-icon ki-blue">◆</div><div>
             <div class="kpi-val" th:text="${totalSensores}">0</div>
             <div class="kpi-lbl">Sensores</div>
             <div class="kpi-delta flat">● Monitorados</div></div></div>
-        <div class="kpi"><div class="kpi-icon ki-violet">⬡</div><div>
-            <div class="kpi-val" th:text="${#lists.size(esteiras)}">0</div>
-            <div class="kpi-lbl">Total Esteiras</div>
-            <div class="kpi-delta flat">● Cadastradas</div></div></div>
+        <div class="kpi"><div class="kpi-icon ki-violet">⚡</div><div>
+            <div class="kpi-val" th:text="${totalAlertas}">0</div>
+            <div class="kpi-lbl">Total de Alertas</div>
+            <div class="kpi-delta flat">● Registrados</div></div></div>
     </div>
 
     <!-- CONTENT GRID -->
     <div class="content-grid">
         <div style="display:flex;flex-direction:column;gap:14px;">
 
-            <!-- MAP CARD (planta visual estática — referência visual) -->
+            <!-- MAP CARD — visão dinâmica das esteiras cadastradas no banco -->
             <div class="map-card">
                 <div class="card-head">
-                    <div><div class="card-title">Planta do Pátio — Vista Esquemática</div>
-                        <div class="card-sub" style="margin-top:3px;">Referência visual do layout · dados reais nos cards abaixo</div></div>
-                    <div style="display:flex;gap:8px;align-items:center;">
+                    <div>
+                        <div class="card-title">Planta do Pátio — Status das Esteiras</div>
+                        <div class="card-sub" style="margin-top:3px;">Estado operacional real lido do banco de dados</div>
+                    </div>
+                    <div style="display:flex;gap:8px;align-items:center;" th:if="${!#lists.isEmpty(esteiras)}">
                         <div class="pulse-dot"></div>
-                        <span class="card-sub">AO VIVO</span>
+                        <span class="card-sub" th:text="${#lists.size(esteiras)} + ' monitorada(s)'">MONITORANDO</span>
                     </div>
                 </div>
-                <div class="map-wrap">
-                    <svg viewBox="0 0 900 260" width="100%" style="display:block;">
-                        <rect x="20" y="20" width="860" height="220" rx="8" class="plant-area"/>
-                        <text x="50"  y="46" class="plant-label">SETOR A</text>
-                        <text x="460" y="46" class="plant-label">SETOR B</text>
-                        <rect x="30"  y="55" width="400" height="155" rx="4" fill="rgba(33,150,243,.03)" stroke="rgba(33,150,243,.08)" stroke-width="1"/>
-                        <rect x="460" y="55" width="410" height="155" rx="4" fill="rgba(33,150,243,.03)" stroke="rgba(33,150,243,.08)" stroke-width="1"/>
-                        <polyline class="belt-line-bg ok" points="60,90 220,90 360,130"/>
-                        <polyline class="belt-line ok"    points="60,90 220,90 360,130"/>
-                        <circle cx="60"  cy="90" r="9" fill="#EEF2FF" class="node-circle" stroke="#10B981" stroke-width="2"/>
-                        <text x="60" y="74" class="node-label" text-anchor="middle">EST-01</text>
-                        <polyline class="belt-line-bg warn" points="60,185 200,185 360,155"/>
-                        <polyline class="belt-line warn"    points="60,185 200,185 360,155"/>
-                        <circle cx="60"  cy="185" r="9" fill="#EEF2FF" class="node-circle" stroke="#F59E0B" stroke-width="2"/>
-                        <text x="60" y="205" class="node-label" text-anchor="middle">EST-02</text>
-                        <rect x="340" y="120" width="44" height="30" rx="4" fill="#E0E8FF" stroke="rgba(37,99,235,.35)" stroke-width="1.5"/>
-                        <text x="362" y="138" class="node-label" text-anchor="middle" style="font-size:10px">CENTRAL</text>
-                        <polyline class="belt-line-bg ok" points="384,135 560,135 700,90"/>
-                        <polyline class="belt-line ok"    points="384,135 560,135 700,90"/>
-                        <circle cx="700" cy="90" r="9" fill="#EEF2FF" class="node-circle" stroke="#10B981" stroke-width="2"/>
-                        <text x="700" y="74" class="node-label" text-anchor="middle">EST-03</text>
-                    </svg>
+                <div class="real-map-grid" th:if="${!#lists.isEmpty(esteiras)}">
+                    <a th:each="e : ${esteiras}"
+                       th:href="@{/esteiras/detalhe/{id}(id=${e.id})}"
+                       class="real-map-node"
+                       th:classappend="${e.estado.name() == 'RUNNING'} ? ' st-running' : (${e.estado.name() == 'MAINTENANCE'} ? ' st-maintenance' : (${e.estado.name() == 'OFFLINE'} ? ' st-offline' : ' st-stopped'))">
+                        <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
+                            <strong style="font-size:15px;color:#0A0E1A;" th:text="${e.nome}">Esteira</strong>
+                            <span th:if="${e.estado.name() == 'RUNNING'}" class="chip chip-ok" style="font-size:10px;">Funcionando</span>
+                            <span th:if="${e.estado.name() == 'STOPPED'}" class="chip chip-stop" style="font-size:10px;">Parada</span>
+                            <span th:if="${e.estado.name() == 'OFFLINE'}" class="chip chip-off" style="font-size:10px;">Offline</span>
+                            <span th:if="${e.estado.name() == 'MAINTENANCE'}" class="chip chip-maint" style="font-size:10px;">Manutenção</span>
+                            <span th:if="${e.estado.name() == 'ERROR'}" class="chip chip-alert" style="font-size:10px;">Erro</span>
+                        </div>
+                        <div style="font-size:12px;color:#64748B;" th:text="${e.localizacao}">Setor</div>
+                        <div class="real-map-track"><div class="real-map-track-bar"></div></div>
+                        <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:11px;color:#475569;">
+                            <span th:text="(${e.sensores != null ? e.sensores.size() : 0}) + ' sensor(es)'">0 sensores</span>
+                            <span th:text="${e.ultimaComunicacaoTexto}">—</span>
+                        </div>
+                    </a>
+                </div>
+                <div th:if="${#lists.isEmpty(esteiras)}" style="padding:36px 20px;text-align:center;color:#64748B;font-size:14px;">
+                    Nenhuma esteira cadastrada para exibir na planta do pátio.
                 </div>
                 <div class="map-legend">
-                    <div class="leg-item"><div class="leg-line" style="background:#EF4444"></div>Crítico</div>
-                    <div class="leg-item"><div class="leg-line" style="background:#F59E0B"></div>Atenção</div>
-                    <div class="leg-item"><div class="leg-line" style="background:#10B981"></div>Normal</div>
-                    <div class="leg-item"><div class="leg-line" style="background:#384F6A;border-top:1px dashed #384F6A;height:0"></div>Inativa</div>
+                    <div class="leg-item"><div class="leg-line" style="background:#10B981"></div>Funcionando</div>
+                    <div class="leg-item"><div class="leg-line" style="background:#EF4444"></div>Parada / Erro</div>
+                    <div class="leg-item"><div class="leg-line" style="background:#F59E0B"></div>Manutenção</div>
+                    <div class="leg-item"><div class="leg-line" style="background:#64748B"></div>Offline</div>
                 </div>
             </div>
 
@@ -293,20 +311,22 @@
                         <div class="belt-details-title">Detalhes das Esteiras</div>
                         <div class="belt-details-sub" th:text="${#lists.size(esteiras)} + ' esteira(s) cadastrada(s)'">0 esteiras</div>
                     </div>
-                    <a href="/esteiras/nova" class="btn btn-blue" style="font-size:14px;">+ Nova Esteira</a>
+                    <a sec:authorize="hasAnyRole('ENGENHEIRO','ADMINISTRADOR')" href="/esteiras/nova" class="btn btn-blue" style="font-size:14px;">+ Nova Esteira</a>
                 </div>
                 <div class="belt-details">
-                    <!-- CORRIGIDO: th:each para iterar esteiras reais -->
                     <div th:each="e : ${esteiras}"
-                         th:classappend="${!e.ativa} ? 'in-maint' : (${e.alertas != null and !#lists.isEmpty(e.alertas)} ? 'has-alert' : '')"
+                         th:classappend="${e.estado.name() == 'MAINTENANCE' or !e.ativa} ? 'in-maint' : (${e.estado.name() == 'STOPPED' or e.estado.name() == 'ERROR'} ? 'has-alert' : '')"
                          class="belt-detail-card">
                         <div class="bdc-top">
                             <div>
                                 <div class="bdc-code" th:text="${e.nome}">Esteira</div>
                                 <div class="bdc-line" th:text="${e.localizacao}">Localização</div>
                             </div>
-                            <div th:if="${e.ativa}"  class="chip chip-ok">Operando</div>
-                            <div th:unless="${e.ativa}" class="chip chip-maint">Inativa</div>
+                            <div th:if="${e.estado.name() == 'RUNNING'}"     class="chip chip-ok">Funcionando</div>
+                            <div th:if="${e.estado.name() == 'STOPPED'}"     class="chip chip-stop">Parada</div>
+                            <div th:if="${e.estado.name() == 'OFFLINE'}"     class="chip chip-off">Offline</div>
+                            <div th:if="${e.estado.name() == 'MAINTENANCE'}" class="chip chip-maint">Manutenção</div>
+                            <div th:if="${e.estado.name() == 'ERROR'}"       class="chip chip-alert">Erro</div>
                         </div>
                         <div class="bdc-metrics">
                             <div class="bdc-m">
@@ -334,9 +354,10 @@
                             </span>
                             <div style="display:flex;gap:6px;">
                                 <a th:href="@{/esteiras/detalhe/{id}(id=${e.id})}" class="btn btn-ghost" style="font-size:13px;padding:4px 10px;">Detalhe</a>
-                                <a th:href="@{/esteiras/editar/{id}(id=${e.id})}" class="btn btn-ghost" style="font-size:13px;padding:4px 10px;">✏ Editar</a>
-                                <!-- CORRIGIDO (S5): exclusão agora é POST, não GET -->
-                                <form th:action="@{/esteiras/deletar/{id}(id=${e.id})}" method="post"
+                                <a sec:authorize="hasAnyRole('ENGENHEIRO','ADMINISTRADOR')"
+                                   th:href="@{/esteiras/editar/{id}(id=${e.id})}" class="btn btn-ghost" style="font-size:13px;padding:4px 10px;">✏ Editar</a>
+                                <form sec:authorize="hasAnyRole('ENGENHEIRO','ADMINISTRADOR')"
+                                      th:action="@{/esteiras/deletar/{id}(id=${e.id})}" method="post"
                                       style="display:inline;margin:0;">
                                     <th:block th:replace="~{fragments/csrf :: token}"/>
                                     <button type="submit" class="btn btn-danger sdae-confirm-delete"
@@ -352,7 +373,8 @@
                     <div th:if="${#lists.isEmpty(esteiras)}" class="belt-empty-state">
                         <div class="belt-empty-icon">⬡</div>
                         <div class="belt-empty-title">Nenhuma esteira cadastrada</div>
-                        <div class="belt-empty-msg">Clique em <strong>+ Nova Esteira</strong> para adicionar a primeira esteira ao sistema.</div>
+                        <div class="belt-empty-msg" sec:authorize="hasAnyRole('ENGENHEIRO','ADMINISTRADOR')">Clique em <strong>+ Nova Esteira</strong> para adicionar a primeira esteira ao sistema.</div>
+                        <div class="belt-empty-msg" sec:authorize="!hasAnyRole('ENGENHEIRO','ADMINISTRADOR')">Aguarde um Engenheiro ou Administrador cadastrar esteiras no sistema.</div>
                     </div>
                 </div>
             </div>
@@ -366,12 +388,10 @@
             <div class="alert-rank">
                 <div class="card-head">
                     <div class="card-title">Esteiras com Alertas</div>
-                    <span class="card-sub">Hoje</span>
+                    <span class="card-sub">Histórico</span>
                 </div>
-                <div class="rank-list">
-                    <div th:each="e, iter : ${esteiras}"
-                         th:if="${e.alertas != null and !#lists.isEmpty(e.alertas)}"
-                         class="rank-row">
+                <div class="rank-list" th:with="esteirasComAlertas=${esteiras.?[alertas != null and !#lists.isEmpty(alertas)]}">
+                    <div th:each="e, iter : ${esteirasComAlertas}" class="rank-row">
                         <div class="rank-pos" th:classappend="${iter.index == 0} ? 'top1' : (${iter.index == 1} ? 'top2' : 'top3')"
                              th:text="${iter.count}">1</div>
                         <div class="rank-info">
@@ -380,7 +400,7 @@
                         </div>
                         <div class="rank-num" th:text="${e.alertas.size()}" style="color:var(--ruby)">0</div>
                     </div>
-                    <div th:if="${#lists.isEmpty(esteiras) or totalAlertas == 0}" class="panel-empty">
+                    <div th:if="${#lists.isEmpty(esteirasComAlertas)}" class="panel-empty">
                         <div class="panel-empty-icon">✓</div>
                         <div class="panel-empty-msg">Nenhum alerta registrado</div>
                     </div>
@@ -391,16 +411,20 @@
             <div class="status-summary">
                 <div class="card-head"><div class="card-title">Resumo de Status</div></div>
                 <div class="sum-row">
-                    <div class="sum-label"><div class="sum-dot" style="background:var(--emerald)"></div>Ativas</div>
-                    <div class="sum-val" th:text="${totalAtivas}">0</div>
+                    <div class="sum-label"><div class="sum-dot" style="background:var(--emerald)"></div>Funcionando</div>
+                    <div class="sum-val" th:text="${totalFuncionando}">0</div>
                 </div>
                 <div class="sum-row">
-                    <div class="sum-label"><div class="sum-dot" style="background:#64748B"></div>Inativas</div>
-                    <div class="sum-val" th:text="${totalInativas}">0</div>
+                    <div class="sum-label"><div class="sum-dot" style="background:var(--ruby)"></div>Paradas</div>
+                    <div class="sum-val" th:text="${totalParadas}">0</div>
                 </div>
                 <div class="sum-row">
-                    <div class="sum-label"><div class="sum-dot" style="background:var(--amber)"></div>Alertas registrados</div>
-                    <div class="sum-val" th:text="${totalAlertas}">0</div>
+                    <div class="sum-label"><div class="sum-dot" style="background:var(--amber)"></div>Em Manutenção</div>
+                    <div class="sum-val" th:text="${totalManutencao}">0</div>
+                </div>
+                <div class="sum-row">
+                    <div class="sum-label"><div class="sum-dot" style="background:#64748B"></div>Offline</div>
+                    <div class="sum-val" th:text="${totalOffline}">0</div>
                 </div>
                 <div class="sum-row">
                     <div class="sum-label">Total de sensores</div>

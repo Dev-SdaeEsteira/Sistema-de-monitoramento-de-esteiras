@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -236,8 +237,7 @@
                                 <span th:if="${a.nivelRisco.name() == 'ATENCAO'}" class="sbadge sb-warn">Atenção</span>
                                 <span th:if="${a.nivelRisco.name() == 'CRITICO'}" class="sbadge sb-crit">Crítico</span>
                                 <span class="ri-id" th:text="'ID #' + ${a.id}">—</span>
-                                <div class="ri-actions">
-                                    <!-- CORRIGIDO (S5): exclusão agora é POST, não GET -->
+                                <div class="ri-actions" sec:authorize="hasAnyRole('ENGENHEIRO','ADMINISTRADOR')" onclick="event.stopPropagation()">
                                     <form th:action="@{/alertas/deletar/{id}(id=${a.id})}" method="post"
                                           style="display:inline;margin:0;">
                                         <th:block th:replace="~{fragments/csrf :: token}"/>
@@ -303,8 +303,8 @@
                             </div>
                             <div class="doc-footer">
                                 <span style="font-size:12px;color:#64748B;">Registrado automaticamente pelo SDAE</span>
-                                <!-- CORRIGIDO (S5): exclusão agora é POST, não GET -->
-                                <form th:action="@{/alertas/deletar/{id}(id=${a.id})}" method="post"
+                                <form sec:authorize="hasAnyRole('ENGENHEIRO','ADMINISTRADOR')"
+                                      th:action="@{/alertas/deletar/{id}(id=${a.id})}" method="post"
                                       style="display:inline;margin:0;">
                                     <th:block th:replace="~{fragments/csrf :: token}"/>
                                     <button type="submit" class="btn-danger-sm sdae-confirm-delete"

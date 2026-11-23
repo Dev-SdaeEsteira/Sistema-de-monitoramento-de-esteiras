@@ -32,6 +32,9 @@ public class EsteiraRestController {
 
     @PostMapping
     public ResponseEntity<Esteira> criar(@Valid @RequestBody Esteira esteira) {
+        esteira.setId(null);
+        esteira.setExcluidoEm(null);
+        esteira.setExcluidoPor(null);
         return ResponseEntity.status(HttpStatus.CREATED).body(esteiraService.salvar(esteira));
     }
 
@@ -56,11 +59,13 @@ public class EsteiraRestController {
         boolean entrar = true;
         String motivo = "Solicitado pelo operador";
         if (body != null) {
-            if (body.containsKey("entrar")) {
-                entrar = Boolean.parseBoolean(body.get("entrar").toString());
+            Object entrarObj = body.get("entrar");
+            if (entrarObj != null) {
+                entrar = Boolean.parseBoolean(entrarObj.toString());
             }
-            if (body.containsKey("motivo")) {
-                motivo = body.get("motivo").toString();
+            Object motivoObj = body.get("motivo");
+            if (motivoObj != null && !motivoObj.toString().isBlank()) {
+                motivo = motivoObj.toString();
             }
         }
         try {

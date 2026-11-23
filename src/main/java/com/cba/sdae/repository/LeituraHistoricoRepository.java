@@ -27,6 +27,12 @@ public interface LeituraHistoricoRepository extends JpaRepository<LeituraHistori
 
     List<LeituraHistorico> findByEsteira_IdAndDataHoraAfterOrderByDataHoraAsc(Long esteiraId, LocalDateTime dataHora);
 
+    List<LeituraHistorico> findByDataHoraAfterOrderByDataHoraDesc(LocalDateTime dataHora, Pageable pageable);
+
+    List<LeituraHistorico> findBySensor_IdAndDataHoraAfterOrderByDataHoraDesc(Long sensorId, LocalDateTime dataHora, Pageable pageable);
+
+    List<LeituraHistorico> findByEsteira_IdAndDataHoraAfterOrderByDataHoraDesc(Long esteiraId, LocalDateTime dataHora, Pageable pageable);
+
     @Query("SELECT l FROM LeituraHistorico l WHERE (:esteiraId IS NULL OR l.esteira.id = :esteiraId) AND (:sensorId IS NULL OR l.sensor.id = :sensorId) ORDER BY l.dataHora DESC")
     List<LeituraHistorico> filtrarLeituras(@Param("esteiraId") Long esteiraId, @Param("sensorId") Long sensorId, Pageable pageable);
 }

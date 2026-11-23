@@ -5,6 +5,14 @@
 
 let periodoAtual = '15m';
 let ldrHistorico = [];
+let ultimoAlertaCriticoDispensado = null;
+let alertaCriticoAtualChave = null;
+
+function dispensarRibbon() {
+  const ribbon = document.getElementById('ribbon');
+  if (ribbon) ribbon.classList.remove('on');
+  ultimoAlertaCriticoDispensado = alertaCriticoAtualChave;
+}
 
 async function carregarDashboard() {
   try {
@@ -50,7 +58,10 @@ function atualizarCardsEsteiras(esteiras) {
   if (!container) return;
 
   if (esteiras.length === 0) {
-    container.innerHTML = '<div style="padding:20px;text-align:center;color:#64748B;font-size:13px;">Nenhuma esteira cadastrada.</div>';
+    const podeGerenciar = container.dataset.canManage === 'true';
+    container.innerHTML = podeGerenciar
+      ? '<div style="padding:20px;text-align:center;color:#64748B;font-size:13px;">Nenhuma esteira cadastrada.<br><a href="/esteiras/nova" style="color:#2563EB;font-weight:600;">Cadastrar esteira →</a></div>'
+      : '<div style="padding:20px;text-align:center;color:#64748B;font-size:13px;">Nenhuma esteira cadastrada no momento.</div>';
     return;
   }
 
@@ -73,6 +84,10 @@ function atualizarCardsEsteiras(esteiras) {
       chipClass = 'chip-maint';
       statusLabel = '🟡 Manutenção';
       cardBorder = 'maintenance';
+    } else if (estado === 'ERROR') {
+      chipClass = 'chip-stop';
+      statusLabel = '⚠ Erro';
+      cardBorder = 'stopped';
     }
 
     const tempoLabel = estado === 'STOPPED' ? 'Parada há:' : (estado === 'RUNNING' ? 'Operando há:' : 'Tempo:');
@@ -136,6 +151,7 @@ function atualizarTabelaEsteiras(esteiras) {
     if (e.estado === 'RUNNING') chip = '<span class="chip chip-ok">🟢 Funcionando</span>';
     else if (e.estado === 'OFFLINE') chip = '<span class="chip chip-off">⚫ Offline</span>';
     else if (e.estado === 'MAINTENANCE') chip = '<span class="chip chip-maint">🟡 Manutenção</span>';
+    else if (e.estado === 'ERROR') chip = '<span class="chip chip-stop">⚠ Erro</span>';
 
     const laserTxt = e.sensorLaser
       ? '<span style="color:#059669;font-weight:600;">Detectado</span>'
@@ -163,6 +179,17 @@ function atualizarAnimacaoPrincipal(esteiras) {
   const sub    = document.getElementById('beltSubText');
   const beam   = document.getElementById('laserBeamStatus');
 
+  if (!esteiras || esteiras.length === 0) {
+    if (btrack) btrack.classList.add('halt');
+    if (chip) {
+      chip.className = 'chip chip-off';
+      chip.textContent = 'Aguardando cadastro';
+    }
+    if (sub) sub.textContent = 'Nenhuma esteira cadastrada';
+    if (beam) beam.textContent = 'Laser: Aguardando sensor';
+    return;
+  }
+
   const algumRodando = esteiras.some(e => e.estado === 'RUNNING');
   const algumComLaser = esteiras.some(e => e.sensorLaser);
 
@@ -181,7 +208,7 @@ function atualizarAnimacaoPrincipal(esteiras) {
     }
   }
 
-  if (sub && esteiras.length > 0) {
+  if (sub) {
     const e = esteiras[0];
     sub.textContent = `${e.nome} (${e.estadoDescricao || e.estado})`;
   }
@@ -226,20 +253,28 @@ function atualizarAlertas(alertas) {
   const tbody = document.getElementById('tbAlertasBody');
   const ribbon = document.getElementById('ribbon');
   const ribbonMsg = document.getElementById('ribbonMsg');
+  const badge = document.getElementById('alertasCountBadge');
+  if (badge) badge.textContent = `${alertas.length} alerta(s)`;
   if (!tbody) return;
 
   if (alertas.length === 0) {
     tbody.innerHTML = '<tr><td style="text-align:center;padding:16px;color:#64748B;">Nenhum alerta ativo.</td></tr>';
+    alertaCriticoAtualChave = null;
     if (ribbon) ribbon.classList.remove('on');
     return;
   }
 
-  // Verifica se o mais recente é crítico
+  // Verifica se o mais recente é crítico e ainda não foi dispensado pelo usuário
   const maisRecente = alertas[0];
   if (ribbon && ribbonMsg && maisRecente.nivelRisco === 'CRITICO') {
-    ribbonMsg.textContent = maisRecente.mensagem;
-    ribbon.classList.add('on');
+    const chave = `${maisRecente.id ?? ''}|${maisRecente.dataHora ?? ''}|${maisRecente.mensagem ?? ''}`;
+    alertaCriticoAtualChave = chave;
+    if (chave !== ultimoAlertaCriticoDispensado) {
+      ribbonMsg.textContent = maisRecente.mensagem;
+      ribbon.classList.add('on');
+    }
   } else if (ribbon) {
+    alertaCriticoAtualChave = null;
     ribbon.classList.remove('on');
   }
 
@@ -304,6 +339,9 @@ function desenharGraficoLdr() {
   ctx.clearRect(0, 0, w, h);
 
   if (!ldrHistorico || ldrHistorico.length === 0) {
+    setEl('ldrMin', '--');
+    setEl('ldrMax', '--');
+    setEl('ldrCur', '--');
     ctx.fillStyle = '#64748B';
     ctx.font = '12px IBM Plex Mono, monospace';
     ctx.textAlign = 'center';
@@ -330,13 +368,29 @@ function desenharGraficoLdr() {
     ctx.stroke();
   });
 
+  if (valores.length === 1) {
+    const y = h - (Math.min(4095, Math.max(0, valores[0])) / 4095) * (h - 20) - 10;
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(37,99,235,0.45)';
+    ctx.lineWidth = 1.5;
+    ctx.moveTo(0, y);
+    ctx.lineTo(w, y);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.fillStyle = '#2563EB';
+    ctx.arc(w / 2, y, 4, 0, Math.PI * 2);
+    ctx.fill();
+    return;
+  }
+
   const range = (max - min) > 0 ? (max - min) : 4095;
-  const escalaMin = min;
+  const escalaMin = (max - min) > 0 ? min : 0;
 
   // Curva de LDR
   ctx.beginPath();
   valores.forEach((v, i) => {
-    const x = (i / (valores.length - 1 || 1)) * w;
+    const x = (i / (valores.length - 1)) * w;
     const y = h - ((v - escalaMin) / range) * (h - 20) - 10;
     if (i === 0) ctx.moveTo(x, y);
     else ctx.lineTo(x, y);

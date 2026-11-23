@@ -22,7 +22,7 @@ import org.springframework.stereotype.Component;
  *  2. Converte para BCrypt qualquer senha legada gravada em texto puro.
  */
 @Component
-@Profile({"dev", "test", "demo"})
+@Profile({"dev", "test"})
 public class DataSeeder implements CommandLineRunner {
 
     private static final Logger log = LoggerFactory.getLogger(DataSeeder.class);

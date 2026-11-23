@@ -178,4 +178,56 @@ class IntegracaoRealEsp32Test extends BaseIntegrationTest {
         List<Alerta> alertas = alertaRepository.findByEsteira_Id(esteira.getId());
         assertThat(alertas).anyMatch(a -> a.getMensagem().contains("OFFLINE") || a.getMensagem().contains("comunicação"));
     }
+
+    @Test
+    @DisplayName("TESTE 5: Interrupção do laser na telemetria deve gerar Alerta Crítico e Evento LASER_LOST")
+    void teste5_interrupcaoLaser_deveGerarAlertaEEvento() {
+        // Primeiro estabelece feixe normal
+        sensorService.processarTelemetria(sensor.getId(), 2200, true, true, LocalDateTime.now(), null);
+
+        // Depois interrompe o feixe sem pulso -> nível CRITICO (85%)
+        Map<String, Object> resp = sensorService.processarTelemetria(
+                sensor.getId(), 120, false, false, LocalDateTime.now(), null);
+
+        assertThat(resp.get("nivelRisco")).isEqualTo("CRITICO");
+
+        List<Alerta> alertas = alertaRepository.findByEsteira_Id(esteira.getId());
+        assertThat(alertas).anyMatch(a -> a.getNivelRisco() == NivelRisco.CRITICO && a.getMensagem().contains("laser"));
+
+        List<EventoEsteira> eventos = eventoRepository.findByEsteira_IdOrderByDataHoraInicioDesc(
+                esteira.getId(), org.springframework.data.domain.PageRequest.of(0, 10));
+        assertThat(eventos).anyMatch(ev -> ev.getTipoEvento() == TipoEventoEsteira.LASER_LOST);
+    }
+
+    @Test
+    @DisplayName("TESTE 6: Editar esteira e sensor via objeto parcial não deve zerar estado nem telemetria")
+    void teste6_editarParcial_devePreservarTelemetriaEEstado() {
+        // Coloca esteira em RUNNING e grava telemetria no sensor
+        sensorService.processarTelemetria(sensor.getId(), 2400, true, true, LocalDateTime.now(), null);
+
+        // Simula formulário MVC enviando apenas id, nome, localizacao, ativa
+        Esteira edicaoEsteira = new Esteira("Esteira 01 Renomeada", "Setor B", true);
+        edicaoEsteira.setId(esteira.getId());
+        esteiraService.salvar(edicaoEsteira);
+
+        Esteira esteiraAtualizada = esteiraRepository.findById(esteira.getId()).orElseThrow();
+        assertThat(esteiraAtualizada.getNome()).isEqualTo("Esteira 01 Renomeada");
+        assertThat(esteiraAtualizada.getEstado()).isEqualTo(EstadoEsteira.RUNNING);
+        assertThat(esteiraAtualizada.getUltimoPulso()).isNotNull();
+        assertThat(esteiraAtualizada.getStopTimeoutSeconds()).isEqualTo(2);
+
+        // Simula formulário MVC de edição do sensor enviando apenas id, modelo, esteira
+        Sensor edicaoSensor = new Sensor();
+        edicaoSensor.setId(sensor.getId());
+        edicaoSensor.setModelo("LDR-001-V2");
+        edicaoSensor.setEsteira(esteiraAtualizada);
+        sensorService.salvar(edicaoSensor);
+
+        Sensor sensorAtualizado = sensorRepository.findById(sensor.getId()).orElseThrow();
+        assertThat(sensorAtualizado.getModelo()).isEqualTo("LDR-001-V2");
+        assertThat(sensorAtualizado.getApiKey()).isEqualTo("CHAVE-TESTE-12345");
+        assertThat(sensorAtualizado.getUltimoValorLdr()).isEqualTo(2400);
+        assertThat(sensorAtualizado.getLaserDetectado()).isTrue();
+        assertThat(sensorAtualizado.getQuantidadePulsos()).isEqualTo(1L);
+    }
 }

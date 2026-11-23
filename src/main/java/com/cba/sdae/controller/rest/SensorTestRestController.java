@@ -10,6 +10,8 @@ import com.cba.sdae.repository.AlertaRepository;
 import com.cba.sdae.repository.EsteiraRepository;
 import com.cba.sdae.service.EventoEsteiraService;
 import com.cba.sdae.service.SensorService;
+import org.springframework.context.annotation.Profile;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,8 +21,10 @@ import java.util.Map;
 /**
  * Controller de testes e simulação para validação sem hardware físico (Req. 30).
  * Permite simular leituras e comandos: START, STOP, OFFLINE, ONLINE, LASER_LOST.
+ * Restrito aos perfis dev e test.
  */
 @RestController
+@Profile({"dev", "test"})
 @RequestMapping("/api/test/sensores")
 public class SensorTestRestController {
 
@@ -54,8 +58,9 @@ public class SensorTestRestController {
         Map<String, Object> payload = (body != null) ? body : Map.of();
 
         // Verifica se há comando direto no body
-        if (payload.containsKey("comando")) {
-            String comando = payload.get("comando").toString().trim().toUpperCase();
+        Object comandoObj = payload.get("comando");
+        if (comandoObj != null && !comandoObj.toString().isBlank()) {
+            String comando = comandoObj.toString().trim().toUpperCase();
             return executarComando(id, comando);
         }
 
@@ -86,6 +91,11 @@ public class SensorTestRestController {
         }
         Sensor sensor = optSensor.get();
         Esteira esteira = sensor.getEsteira();
+        if (esteira == null) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                    "erro", "Sensor " + sensorId + " não está vinculado a uma esteira ativa."
+            ));
+        }
         LocalDateTime agora = LocalDateTime.now();
         EstadoEsteira anterior = esteira.getEstado();
 
@@ -135,6 +145,7 @@ public class SensorTestRestController {
                 esteira.setUltimoContato(agora);
                 sensor.setUltimoContato(agora);
                 esteiraRepository.save(esteira);
+                sensorService.salvar(sensor);
 
                 eventoService.registrarTransicao(esteira, TipoEventoEsteira.ONLINE, anterior,
                         EstadoEsteira.STOPPED, "Simulação de retorno de comunicação");

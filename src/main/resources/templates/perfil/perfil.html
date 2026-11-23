@@ -88,7 +88,7 @@
                 <div class="info-box">
                     <strong>Proteja sua conta</strong> com uma senha forte contendo letras, números e caracteres especiais.
                 </div>
-                <form th:action="@{/perfil/salvar}" method="post">
+                <form id="formAlterarSenha" th:action="@{/perfil/salvar}" method="post">
                     <th:block th:replace="~{fragments/csrf :: token}"/>
                     <input type="hidden" th:value="${funcionario.id}" name="id">
 
@@ -122,8 +122,8 @@
     setInterval(()=>{const el=document.getElementById('clk');if(el)el.textContent=new Date().toLocaleTimeString('pt-BR');},1000);
     (()=>{const d=new Date();const el=document.getElementById('fdate');if(el)el.textContent=d.toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});})();
 
-    // Validar se as senhas coincidem
-    document.querySelector('form')?.addEventListener('submit', (e) => {
+    // Validar se as senhas coincidem (escopo exclusivo do formulário de troca de senha)
+    document.getElementById('formAlterarSenha')?.addEventListener('submit', (e) => {
         const nova = document.getElementById('novaSenha').value;
         const confirmar = document.getElementById('confirmarSenha').value;
         if (nova !== confirmar) {

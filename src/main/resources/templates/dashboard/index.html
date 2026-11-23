@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -281,7 +282,7 @@
 <div class="ribbon" id="ribbon">
     <span class="ribbon-icon">⚠</span>
     <span id="ribbonMsg">ALERTA CRÍTICO: DETECTADA PARADA OU FALHA DE SENSOR NA ESTEIRA</span>
-    <span class="ribbon-close" onclick="this.parentElement.classList.remove('on')">✕</span>
+    <span class="ribbon-close" onclick="dispensarRibbon()">✕</span>
 </div>
 
 <main>
@@ -328,10 +329,11 @@
     <!-- ════ COLUNA 1: CARDS DAS ESTEIRAS (Req. 17) ════ -->
     <div class="panel-left">
         <div class="sec-label">Cards das Esteiras</div>
-        <div id="esteirasCardsContainer">
+        <div id="esteirasCardsContainer"
+             th:attr="data-can-manage=${#authorization.expression('hasAnyRole(''ENGENHEIRO'',''ADMINISTRADOR'')')}">
             <!-- Renderizado dinamicamente via JS / SSR inicial -->
             <div th:each="e : ${esteiras}" class="esteira-card"
-                 th:classappend="${e.estado.name() == 'RUNNING'} ? 'running' : (${e.estado.name() == 'STOPPED'} ? 'stopped' : (${e.estado.name() == 'OFFLINE'} ? 'offline' : 'maintenance'))">
+                 th:classappend="${e.estado.name() == 'RUNNING'} ? 'running' : (${e.estado.name() == 'STOPPED' or e.estado.name() == 'ERROR'} ? 'stopped' : (${e.estado.name() == 'OFFLINE'} ? 'offline' : 'maintenance'))">
                 <div class="ec-head">
                     <div>
                         <div class="ec-title" th:text="${e.nome}">Esteira 01</div>
@@ -342,6 +344,7 @@
                         <span th:if="${e.estado.name() == 'STOPPED'}" class="chip chip-stop">🔴 Parada</span>
                         <span th:if="${e.estado.name() == 'OFFLINE'}" class="chip chip-off">⚫ Offline</span>
                         <span th:if="${e.estado.name() == 'MAINTENANCE'}" class="chip chip-maint">🟡 Manutenção</span>
+                        <span th:if="${e.estado.name() == 'ERROR'}" class="chip chip-stop">⚠ Erro</span>
                     </div>
                 </div>
 
@@ -374,8 +377,10 @@
             </div>
 
             <div th:if="${#lists.isEmpty(esteiras)}" style="padding:20px;text-align:center;color:#64748B;font-size:13px;">
-                Nenhuma esteira cadastrada.<br>
-                <a href="/esteiras/nova" style="color:#2563EB;font-weight:600;">Cadastrar esteira →</a>
+                Nenhuma esteira cadastrada.
+                <th:block sec:authorize="hasAnyRole('ENGENHEIRO','ADMINISTRADOR')">
+                    <br><a href="/esteiras/nova" style="color:#2563EB;font-weight:600;">Cadastrar esteira →</a>
+                </th:block>
             </div>
         </div>
     </div>
@@ -388,20 +393,25 @@
             <div class="card-head">
                 <div>
                     <div class="card-title">Monitoramento Físico: Laser + LDR</div>
-                    <span class="card-sub" id="beltSubText">Status em tempo real</span>
+                    <span class="card-sub" id="beltSubText"
+                          th:text="${#lists.isEmpty(esteiras)} ? 'Nenhuma esteira cadastrada' : 'Status em tempo real'">Status em tempo real</span>
                 </div>
-                <span class="chip chip-ok" id="mainBeltStatusChip">Operando</span>
+                <span class="chip" id="mainBeltStatusChip"
+                      th:classappend="${#lists.isEmpty(esteiras)} ? ' chip-off' : (${totalFuncionando > 0} ? ' chip-ok' : ' chip-stop')"
+                      th:text="${#lists.isEmpty(esteiras)} ? 'Aguardando cadastro' : (${totalFuncionando > 0} ? '🟢 Operando' : '🔴 Parada')">Aguardando cadastro</span>
             </div>
             <div style="padding:14px 16px;">
                 <div class="belt-scene">
                     <div class="roller L"></div>
                     <div class="roller R"></div>
-                    <div class="belt-track" id="mainBeltTrack"></div>
+                    <div class="belt-track" id="mainBeltTrack"
+                         th:classappend="${totalFuncionando == 0} ? ' halt' : ''"></div>
                     <div class="sbeam" style="left:50%;" title="Feixe do Laser KY-008"></div>
                 </div>
                 <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:11px;font-family:var(--font-mono);color:#64748B;">
                     <span>ESP32 ADC: GPIO 34 (LDR)</span>
-                    <span id="laserBeamStatus">Laser: Ativo</span>
+                    <span id="laserBeamStatus"
+                          th:text="${#lists.isEmpty(esteiras)} ? 'Laser: Aguardando sensor' : 'Laser: Monitorando'">Laser: Aguardando sensor</span>
                     <span>Modo: Detecção de Feixe e Pulsos</span>
                 </div>
             </div>
@@ -435,6 +445,7 @@
                             <span th:if="${e.estado.name() == 'STOPPED'}" class="chip chip-stop">🔴 Parada</span>
                             <span th:if="${e.estado.name() == 'OFFLINE'}" class="chip chip-off">⚫ Offline</span>
                             <span th:if="${e.estado.name() == 'MAINTENANCE'}" class="chip chip-maint">🟡 Manutenção</span>
+                            <span th:if="${e.estado.name() == 'ERROR'}" class="chip chip-stop">⚠ Erro</span>
                         </td>
                         <td style="text-align:right;font-weight:700;" th:text="${e.sensores != null and !#lists.isEmpty(e.sensores)} ? ${e.sensores[0].ultimoValorLdr} : '—'">1820</td>
                         <td>
@@ -539,7 +550,7 @@
         <div class="card">
             <div class="card-head">
                 <div class="card-title">Alertas Recentes</div>
-                <span class="card-sub" th:text="${alertas != null ? #lists.size(alertas) : 0} + ' alerta(s)'">0</span>
+                <span class="card-sub" id="alertasCountBadge" th:text="${alertas != null ? #lists.size(alertas) : 0} + ' alerta(s)'">0 alerta(s)</span>
             </div>
             <div class="log-scroll" style="max-height:220px;">
                 <table class="log-table">

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="'SDAE — Erro ' + (${status != null ? status : ''})">SDAE — Erro</title>
+    <link rel="stylesheet" th:href="@{/css/sdae-base.css}">
+    <style>
+        html { font-size: 18px; }
+        body {
+            background: #F4F6FA;
+            color: #1A202C;
+            font-family: var(--font-sans, system-ui, -apple-system, sans-serif);
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background-image: linear-gradient(#E8EDF5 1px, transparent 1px), linear-gradient(90deg, #E8EDF5 1px, transparent 1px);
+            background-size: 48px 48px;
+        }
+        .err-card {
+            background: #fff;
+            border: 1px solid #E2E8F0;
+            border-radius: 14px;
+            max-width: 520px;
+            width: 100%;
+            padding: 36px 32px;
+            text-align: center;
+            box-shadow: 0 12px 32px rgba(15, 23, 42, 0.06);
+        }
+        .err-code {
+            font-family: var(--font-mono, monospace);
+            font-size: 56px;
+            font-weight: 700;
+            line-height: 1;
+            color: #2563EB;
+            margin-bottom: 12px;
+        }
+        .err-code.is-403 { color: #D97706; }
+        .err-code.is-500 { color: #DC2626; }
+        .err-title {
+            font-family: var(--font-serif, Georgia, serif);
+            font-size: 26px;
+            font-weight: 700;
+            color: #0A0E1A;
+            margin: 0 0 10px;
+        }
+        .err-desc {
+            font-size: 15px;
+            color: #4A5568;
+            line-height: 1.55;
+            margin: 0 0 24px;
+        }
+        .err-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .btn {
+            font-size: 14px;
+            font-weight: 600;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            border: none;
+            transition: all .18s;
+        }
+        .btn-blue { background: #2563EB; color: #fff; }
+        .btn-blue:hover { background: #1D4ED8; }
+        .btn-ghost { background: #fff; color: #334155; border: 1px solid #CBD5E1; }
+        .btn-ghost:hover { border-color: #2563EB; color: #2563EB; }
+        .err-meta {
+            margin-top: 22px;
+            padding-top: 14px;
+            border-top: 1px solid #EEF2F7;
+            font-family: var(--font-mono, monospace);
+            font-size: 11px;
+            color: #94A3B8;
+        }
+    </style>
+</head>
+<body>
+<div class="err-card">
+    <div class="err-code"
+         th:classappend="${status == 403} ? ' is-403' : (${status != null and status >= 500} ? ' is-500' : '')"
+         th:text="${status != null ? status : 'Erro'}">404</div>
+
+    <h1 class="err-title"
+        th:text="${status == 403} ? 'Acesso Negado' : (${status == 404} ? 'Página Não Encontrada' : (${status != null and status >= 500} ? 'Erro Interno do Servidor' : 'Não foi possível concluir a operação'))">
+        Página Não Encontrada
+    </h1>
+
+    <p class="err-desc"
+       th:text="${status == 403} ? 'Seu perfil de acesso não tem permissão para visualizar ou executar esta ação.' : (${status == 404} ? 'O endereço solicitado não existe ou foi movido.' : 'Ocorreu um imprevisto ao processar a solicitação. Tente novamente ou volte para o painel.')">
+        O endereço solicitado não existe ou foi movido.
+    </p>
+
+    <div class="err-actions">
+        <a th:href="@{/dashboard}" class="btn btn-blue">Ir para o Dashboard</a>
+        <a href="javascript:history.back()" class="btn btn-ghost">← Voltar</a>
+    </div>
+
+    <div class="err-meta">
+        SDAE · Sistema de Monitoramento de Esteiras
+        <span th:if="${path != null}" th:text="' · ' + ${path}"></span>
+    </div>
+</div>
+</body>
+</html>

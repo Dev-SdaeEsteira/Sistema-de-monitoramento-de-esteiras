@@ -62,7 +62,7 @@ const int HISTERESE = 100;
 // ── 5. TEMPOS E AMOSTRAGEM (milissegundos) ──────────────────────────────
 const unsigned long INTERVALO_AMOSTRAGEM = 25;    // Amostra LDR a cada 25ms (40Hz)
 const unsigned long INTERVALO_ENVIO      = 2500;  // Telemetria/Heartbeat a cada 2.5 segundos
-const unsigned long STOP_TIMEOUT         = 10000; // 10s sem pulsos = Esteira Parada
+const unsigned long STOP_TIMEOUT         = 15000; // 15s sem pulsos = Esteira Parada (alinhado ao backend)
 const unsigned long DEBOUNCE_PULSO_MS    = 150;   // Intervalo mínimo entre pulsos físicos
 
 // ── VARIÁVEIS DE ESTADO INTERNO ─────────────────────────────────────────
@@ -77,6 +77,7 @@ int ultimaLeituraLdr = 0;
 
 bool estadoLaserAnterior = false;
 bool pulsoDetectadoNestaJanela = false;
+bool laserDetectadoNestaJanela = false;
 unsigned long pulsosAcumulados = 0;
 unsigned int pulsosNaJanela = 0;
 
@@ -126,6 +127,10 @@ void amostrarLdrEPulsos() {
         laserDetectado = estadoLaserAnterior;
     }
 
+    if (laserDetectado) {
+        laserDetectadoNestaJanela = true;
+    }
+
     unsigned long agora = millis();
 
     // Transição de feixe (interrupção do laser ou retorno com debounce)
@@ -137,18 +142,20 @@ void amostrarLdrEPulsos() {
             pulsosAcumulados++;
             tempoUltimoPulso = agora;
             tempoUltimaTransicao = agora;
+            estadoLaserAnterior = laserDetectado;
         }
-        estadoLaserAnterior = laserDetectado;
     }
 }
 
 // ── ENVIO DE TELEMETRIA E HEARTBEAT VIA HTTP POST ──────────────────────
 void enviarTelemetria() {
     unsigned long agora = millis();
-    unsigned long tempoSemPulsos = agora - tempoUltimoPulso;
-    bool esteiraParada = (tempoUltimoPulso > 0 && tempoSemPulsos >= STOP_TIMEOUT);
+    unsigned long tempoSemPulsos = (tempoUltimoPulso > 0) ? (agora - tempoUltimoPulso) : STOP_TIMEOUT;
+    bool esteiraParada = (tempoUltimoPulso == 0 || tempoSemPulsos >= STOP_TIMEOUT);
 
-    bool laserPresente = (ultimaLeituraLdr >= LDR_THRESHOLD);
+    // Usa estado com histerese e evita falso alarme de feixe interrompido
+    // caso uma pá da esteira em movimento esteja cortando o feixe no exato instante do POST
+    bool laserPresente = estadoLaserAnterior || (pulsoDetectadoNestaJanela && laserDetectadoNestaJanela);
 
     // Relatório do Monitor Serial para calibração e acompanhamento
     Serial.print("LDR atual: ");
@@ -173,6 +180,7 @@ void enviarTelemetria() {
             Serial.println("[HTTP] Não enviado: sem conexão Wi-Fi.");
             // Reseta janela mesmo sem envio
             pulsoDetectadoNestaJanela = false;
+            laserDetectadoNestaJanela = estadoLaserAnterior;
             pulsosNaJanela = 0;
             ldrMinimoJanela = ultimaLeituraLdr;
             ldrMaximoJanela = ultimaLeituraLdr;
@@ -213,6 +221,7 @@ void enviarTelemetria() {
 
     // Reseta acumuladores da janela de amostragem
     pulsoDetectadoNestaJanela = false;
+    laserDetectadoNestaJanela = estadoLaserAnterior;
     pulsosNaJanela = 0;
     ldrMinimoJanela = ultimaLeituraLdr;
     ldrMaximoJanela = ultimaLeituraLdr;
@@ -236,9 +245,16 @@ void setup() {
     analogReadResolution(12); // Resolução de 12 bits (0 a 4095)
     pinMode(PINO_LDR, INPUT);
 
-    conectarWifi();
+    // Leitura inicial do LDR para inicializar estado real do feixe e evitar pulso falso no boot
+    int leituraInicial = analogRead(PINO_LDR);
+    ultimaLeituraLdr = leituraInicial;
+    ldrMinimoJanela = leituraInicial;
+    ldrMaximoJanela = leituraInicial;
+    estadoLaserAnterior = (leituraInicial >= LDR_THRESHOLD);
+    laserDetectadoNestaJanela = estadoLaserAnterior;
+    tempoUltimaTransicao = millis();
 
-    tempoUltimoPulso = millis();
+    conectarWifi();
 }
 
 // ── LOOP PRINCIPAL NÃO-BLOQUEANTE ──────────────────────────────────────

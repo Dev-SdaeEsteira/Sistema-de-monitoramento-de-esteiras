@@ -104,38 +104,56 @@ public class SensorService {
         if (sensor == null || sensor.getModelo() == null || sensor.getModelo().isBlank()) {
             throw new IllegalArgumentException("O modelo do sensor é obrigatório.");
         }
-        double leitura = sensor.getLeituraAtual() != null ? sensor.getLeituraAtual() : 0;
-        NivelRisco nivel = calcularNivel(leitura);
-        sensor.setNivelRisco(nivel);
-
-        // Preserva chave de API e data da última leitura se for edição e não vierem no payload
-        if (sensor.getId() != null &&
-                (sensor.getApiKey() == null || sensor.getApiKey().isBlank() || sensor.getUltimaLeitura() == null)) {
-            sensorRepository.findById(sensor.getId()).ifPresent(existente -> {
-                if (sensor.getApiKey() == null || sensor.getApiKey().isBlank()) {
-                    sensor.setApiKey(existente.getApiKey());
-                }
-                if (sensor.getUltimaLeitura() == null) {
-                    sensor.setUltimaLeitura(existente.getUltimaLeitura());
-                }
-            });
-        }
-        if (sensor.getApiKey() == null || sensor.getApiKey().isBlank()) {
-            sensor.setApiKey(java.util.UUID.randomUUID().toString());
-        }
 
         boolean isNova = sensor.getId() == null;
-        Sensor salvo = sensorRepository.save(sensor);
+        Sensor entidadeParaSalvar = sensor;
+
+        if (!isNova) {
+            Optional<Sensor> optExistente = sensorRepository.findById(sensor.getId());
+            if (optExistente.isPresent()) {
+                Sensor existente = optExistente.get();
+                // Se recebeu instância destacada (ex.: formulário MVC), preserva telemetria e metadados
+                if (existente != sensor) {
+                    existente.setModelo(sensor.getModelo());
+                    if (sensor.getEsteira() != null) {
+                        existente.setEsteira(sensor.getEsteira());
+                    }
+                    if (sensor.getLeituraAtual() != null) {
+                        existente.setLeituraAtual(sensor.getLeituraAtual());
+                    }
+                    if (sensor.getDescricao() != null && !sensor.getDescricao().isBlank()) {
+                        existente.setDescricao(sensor.getDescricao());
+                    }
+                    if (sensor.getTipo() != null && !sensor.getTipo().isBlank() && !"Laser + LDR".equals(sensor.getTipo())) {
+                        existente.setTipo(sensor.getTipo());
+                    }
+                    if (sensor.getStatus() != null && !sensor.getStatus().isBlank() && !"ATIVO".equals(sensor.getStatus())) {
+                        existente.setStatus(sensor.getStatus());
+                    }
+                }
+                entidadeParaSalvar = existente;
+            }
+        }
+
+        double leitura = entidadeParaSalvar.getLeituraAtual() != null ? entidadeParaSalvar.getLeituraAtual() : 0.0;
+        NivelRisco nivel = calcularNivel(leitura);
+        entidadeParaSalvar.setNivelRisco(nivel);
+
+        if (entidadeParaSalvar.getApiKey() == null || entidadeParaSalvar.getApiKey().isBlank()) {
+            entidadeParaSalvar.setApiKey(java.util.UUID.randomUUID().toString());
+        }
+
+        Sensor salvo = sensorRepository.save(entidadeParaSalvar);
 
         // Registrar auditoria
         String usuario = getUsuarioAtual();
         String acao = isNova ? "CRIAR" : "ATUALIZAR";
-        String detalhes = String.format("Modelo: %s, Leitura: %.1f%%, Nível: %s", 
+        String detalhes = String.format("Modelo: %s, Leitura: %.1f%%, Nível: %s",
             salvo.getModelo(), salvo.getLeituraAtual(), salvo.getNivelRisco());
         auditoriaService.registrar(acao, "SENSOR", salvo.getId(), usuario, detalhes);
 
         if (nivel != NivelRisco.NORMAL) {
-            verificarEDispararAlerta(salvo, nivel, leitura);
+            verificarEDispararAlerta(salvo, nivel, leitura, false);
         } else if (salvo.getId() != null) {
             ultimoNivelPorSensor.put(salvo.getId(), NivelRisco.NORMAL);
         }
@@ -160,6 +178,8 @@ public class SensorService {
         }
 
         LocalDateTime agora = timestamp != null ? timestamp : LocalDateTime.now();
+        boolean teveContatoAntes = sensor.getUltimoContato() != null;
+        boolean laserAnterior = Boolean.TRUE.equals(sensor.getLaserDetectado());
 
         // 1. Determina valor LDR e se laser foi detectado
         int ldr = valorLdr != null ? valorLdr : (valorLegado != null ? (int) (valorLegado * 40.95) : (sensor.getUltimoValorLdr() != null ? sensor.getUltimoValorLdr() : 0));
@@ -206,7 +226,7 @@ public class SensorService {
                 eventoService.registrarTransicao(esteira, TipoEventoEsteira.ONLINE, EstadoEsteira.OFFLINE,
                         pulso ? EstadoEsteira.RUNNING : EstadoEsteira.STOPPED,
                         "Comunicação restabelecida com o sensor " + sensor.getModelo());
-                
+
                 if (pulso) {
                     esteira.setEstado(EstadoEsteira.RUNNING);
                     esteira.setTempoFuncionamentoInicio(agora);
@@ -237,6 +257,17 @@ public class SensorService {
                             agora, NivelRisco.NORMAL, esteira));
                 }
             }
+
+            // Registra eventos de interrupção/retorno do feixe de laser
+            if (valorLegado == null) {
+                if (!laser && (laserAnterior || !teveContatoAntes)) {
+                    eventoService.registrarTransicao(esteira, TipoEventoEsteira.LASER_LOST, estadoAnterior,
+                            esteira.getEstado(), "Feixe de laser interrompido no sensor " + sensor.getModelo() + " (LDR=" + ldr + ")");
+                } else if (laser && !laserAnterior && teveContatoAntes) {
+                    eventoService.registrarTransicao(esteira, TipoEventoEsteira.LASER_DETECTED, estadoAnterior,
+                            esteira.getEstado(), "Feixe de laser restabelecido no sensor " + sensor.getModelo() + " (LDR=" + ldr + ")");
+                }
+            }
         }
 
         // 4. Persiste LeituraHistorico no banco
@@ -249,7 +280,16 @@ public class SensorService {
         sensorRepository.save(sensor);
         esteiraRepository.save(esteira);
 
-        // 5. Retorna mapa com formato da resposta da API (Req. 10)
+        // 5. Dispara alerta inteligente quando a telemetria entra em ATENCAO ou CRITICO
+        if (estadoAnterior != EstadoEsteira.MAINTENANCE) {
+            if (nivelRisco != NivelRisco.NORMAL) {
+                verificarEDispararAlerta(sensor, nivelRisco, pct, !laser && valorLegado == null);
+            } else {
+                ultimoNivelPorSensor.put(sensor.getId(), NivelRisco.NORMAL);
+            }
+        }
+
+        // 6. Retorna mapa com formato da resposta da API (Req. 10)
         return Map.of(
                 "success", true,
                 "sensorId", sensor.getId(),
@@ -269,7 +309,7 @@ public class SensorService {
     }
 
     // Gera alerta inteligente (apenas em transições de estado ou a cada 15 min de insistência)
-    private void verificarEDispararAlerta(Sensor sensor, NivelRisco nivel, double leitura) {
+    private void verificarEDispararAlerta(Sensor sensor, NivelRisco nivel, double leitura, boolean falhaLaser) {
         if (sensor.getEsteira() == null || sensor.getId() == null) return;
 
         Long sId = sensor.getId();
@@ -281,11 +321,20 @@ public class SensorService {
         boolean tempoExpirou = (ultimoAlerta == null || Duration.between(ultimoAlerta, agora).toMinutes() >= 15);
 
         if (mudouNivel || tempoExpirou) {
-            String mensagem = nivel == NivelRisco.CRITICO
-                    ? String.format("ALERTA CRÍTICO: Sensor %s na esteira '%s' com risco elevado — leitura: %.1f%%",
-                    sensor.getModelo(), sensor.getEsteira().getNome(), leitura)
-                    : String.format("Sensor %s na esteira '%s' em nível de ATENÇÃO — leitura: %.1f%%",
-                    sensor.getModelo(), sensor.getEsteira().getNome(), leitura);
+            String mensagem;
+            if (falhaLaser) {
+                mensagem = nivel == NivelRisco.CRITICO
+                        ? String.format("ALERTA CRÍTICO: Feixe de laser interrompido no sensor %s da esteira '%s' (LDR: %d).",
+                        sensor.getModelo(), sensor.getEsteira().getNome(), sensor.getUltimoValorLdr() != null ? sensor.getUltimoValorLdr() : 0)
+                        : String.format("ATENÇÃO: Oscilação/interrupção no feixe de laser do sensor %s na esteira '%s' (LDR: %d).",
+                        sensor.getModelo(), sensor.getEsteira().getNome(), sensor.getUltimoValorLdr() != null ? sensor.getUltimoValorLdr() : 0);
+            } else {
+                mensagem = nivel == NivelRisco.CRITICO
+                        ? String.format("ALERTA CRÍTICO: Sensor %s na esteira '%s' com risco elevado — leitura: %.1f%%",
+                        sensor.getModelo(), sensor.getEsteira().getNome(), leitura)
+                        : String.format("Sensor %s na esteira '%s' em nível de ATENÇÃO — leitura: %.1f%%",
+                        sensor.getModelo(), sensor.getEsteira().getNome(), leitura);
+            }
 
             alertaRepository.save(new Alerta(mensagem, agora, nivel, sensor.getEsteira()));
             ultimoAlertaPorSensor.put(sId, agora);

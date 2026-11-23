@@ -141,15 +141,16 @@ public class DashboardRestController {
             default    -> LocalDateTime.now().minusMinutes(15);
         };
 
+        PageRequest limite = PageRequest.of(0, 200);
         List<LeituraHistorico> leituras;
         if (sensorId != null) {
-            leituras = leituraRepo.findBySensor_IdAndDataHoraAfterOrderByDataHoraAsc(sensorId, inicio);
+            leituras = new ArrayList<>(leituraRepo.findBySensor_IdAndDataHoraAfterOrderByDataHoraDesc(sensorId, inicio, limite));
         } else if (esteiraId != null) {
-            leituras = leituraRepo.findByEsteira_IdAndDataHoraAfterOrderByDataHoraAsc(esteiraId, inicio);
+            leituras = new ArrayList<>(leituraRepo.findByEsteira_IdAndDataHoraAfterOrderByDataHoraDesc(esteiraId, inicio, limite));
         } else {
-            leituras = leituraRepo.findAllByOrderByDataHoraDesc(PageRequest.of(0, 100));
-            Collections.reverse(leituras);
+            leituras = new ArrayList<>(leituraRepo.findByDataHoraAfterOrderByDataHoraDesc(inicio, limite));
         }
+        Collections.reverse(leituras);
 
         List<Map<String, Object>> result = new ArrayList<>();
         for (LeituraHistorico l : leituras) {

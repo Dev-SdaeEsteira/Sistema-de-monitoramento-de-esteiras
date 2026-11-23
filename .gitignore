@@ -4,8 +4,11 @@ build/
 *.class
 
 # Maven
-.mvn/
+.mvn/*
+!.mvn/wrapper/
+.mvn/wrapper/*
 !.mvn/wrapper/maven-wrapper.jar
+!.mvn/wrapper/maven-wrapper.properties
 
 # IDE files
 .idea/

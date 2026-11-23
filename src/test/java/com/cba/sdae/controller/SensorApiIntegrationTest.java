@@ -144,4 +144,67 @@ class SensorApiIntegrationTest extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.esteirasOffline").exists())
                 .andExpect(jsonPath("$.esteiras").isArray());
     }
+
+    @Test
+    @WithMockUser(username = "operador", roles = "OPERADOR")
+    @DisplayName("GET /api/dashboard/grafico-ldr deve respeitar o período informado")
+    void getGraficoLdr_deveRespeitarPeriodo() throws Exception {
+        // Insere uma leitura antiga (2h atrás) e uma recente (agora)
+        leituraRepo.save(new com.cba.sdae.model.LeituraHistorico(
+                sensor, esteira, 1100, true, true, EstadoEsteira.RUNNING, 10.0,
+                com.cba.sdae.model.NivelRisco.NORMAL, java.time.LocalDateTime.now().minusHours(2)));
+        leituraRepo.save(new com.cba.sdae.model.LeituraHistorico(
+                sensor, esteira, 2300, true, true, EstadoEsteira.RUNNING, 10.0,
+                com.cba.sdae.model.NivelRisco.NORMAL, java.time.LocalDateTime.now()));
+
+        // Período 5m deve retornar apenas a leitura recente
+        mockMvc.perform(get("/api/dashboard/grafico-ldr").param("periodo", "5m"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].valorLdr").value(2300));
+
+        // Período 24h deve retornar ambas as leituras em ordem cronológica
+        mockMvc.perform(get("/api/dashboard/grafico-ldr").param("periodo", "24h"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].valorLdr").value(1100))
+                .andExpect(jsonPath("$[1].valorLdr").value(2300));
+    }
+
+    @Test
+    @WithMockUser(username = "operador", roles = "OPERADOR")
+    @DisplayName("Telas MVC para OPERADOR devem renderizar 200 e ocultar botões restritos")
+    void telasOperador_devemOcultarBotoesRestritos() throws Exception {
+        mockMvc.perform(get("/dashboard"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/esteiras"))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().string(
+                        org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("/esteiras/nova"))))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().string(
+                        org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("/esteiras/deletar/"))));
+
+        mockMvc.perform(get("/sensores"))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().string(
+                        org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("/sensores/novo"))));
+
+        mockMvc.perform(get("/relatorios"))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().string(
+                        org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("/alertas/deletar/"))));
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = "ADMINISTRADOR")
+    @DisplayName("Requisição com JSON inválido deve retornar 400 (não 500)")
+    void jsonInvalido_deveRetornar400() throws Exception {
+        mockMvc.perform(post("/api/esteiras")
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{json-quebrado"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+    }
 }

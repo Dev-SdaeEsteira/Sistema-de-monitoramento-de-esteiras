@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -210,7 +211,7 @@
             <div class="page-sub" th:text="${totalSensores} + ' dispositivo(s) monitorado(s) · ESP32 Laser + LDR'">0 dispositivo(s) monitorado(s) · ESP32 Laser + LDR</div>
         </div>
         <div style="display:flex;gap:8px;">
-            <a href="/sensores/novo" class="btn btn-blue">+ Novo Sensor</a>
+            <a sec:authorize="hasAnyRole('ENGENHEIRO','ADMINISTRADOR')" href="/sensores/novo" class="btn btn-blue">+ Novo Sensor</a>
         </div>
     </div>
 
@@ -238,6 +239,7 @@
         <span class="filter-label">Filtrar:</span>
         <span class="filter-chip active" onclick="filterSensors('all',this)">Todos</span>
         <span class="filter-chip" onclick="filterSensors('online',this)">Online</span>
+        <span class="filter-chip" onclick="filterSensors('warn',this)">Em Atenção</span>
         <span class="filter-chip" onclick="filterSensors('alert',this)">Em Alerta</span>
         <span class="filter-chip" onclick="filterSensors('offline',this)">Offline</span>
     </div>
@@ -327,9 +329,10 @@
                 </span>
                 <div style="display:flex;gap:6px;">
                     <a th:href="@{/sensores/detalhe/{id}(id=${s.id})}" class="btn btn-ghost" style="font-size:13px;padding:4px 10px;text-decoration:none;">Detalhe</a>
-                    <a th:href="@{/sensores/editar/{id}(id=${s.id})}" class="btn btn-ghost" style="font-size:13px;padding:4px 10px;text-decoration:none;">✏ Editar</a>
-                    <!-- CORRIGIDO (S5): exclusão agora é POST, não GET (era vulnerável a CSRF via link) -->
-                    <form th:action="@{/sensores/deletar/{id}(id=${s.id})}" method="post"
+                    <a sec:authorize="hasAnyRole('ENGENHEIRO','ADMINISTRADOR')"
+                       th:href="@{/sensores/editar/{id}(id=${s.id})}" class="btn btn-ghost" style="font-size:13px;padding:4px 10px;text-decoration:none;">✏ Editar</a>
+                    <form sec:authorize="hasAnyRole('ENGENHEIRO','ADMINISTRADOR')"
+                          th:action="@{/sensores/deletar/{id}(id=${s.id})}" method="post"
                           style="display:inline;margin:0;">
                         <th:block th:replace="~{fragments/csrf :: token}"/>
                         <button type="submit" class="btn btn-danger sdae-confirm-delete"
@@ -346,7 +349,7 @@
              style="grid-column:1/-1;text-align:center;padding:40px;color:#64748B;">
             <div style="font-size:32px;margin-bottom:12px;">⚡</div>
             <div style="font-size:16px;font-weight:500;margin-bottom:8px;">Nenhum sensor cadastrado</div>
-            <a href="/sensores/novo" style="color:#2563EB;font-size:14px;">+ Cadastrar primeiro sensor →</a>
+            <a sec:authorize="hasAnyRole('ENGENHEIRO','ADMINISTRADOR')" href="/sensores/novo" style="color:#2563EB;font-size:14px;">+ Cadastrar primeiro sensor →</a>
         </div>
 
     </div><!-- /sensor-grid -->

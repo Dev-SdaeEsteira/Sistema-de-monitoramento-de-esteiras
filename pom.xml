@@ -99,11 +99,11 @@
 			<scope>test</scope>
 		</dependency>
 
-		<!-- H2 Database - In-memory DB for tests and standalone presentation demo -->
+		<!-- H2 Database - In-memory DB for tests -->
 		<dependency>
 			<groupId>com.h2database</groupId>
 			<artifactId>h2</artifactId>
-			<scope>runtime</scope>
+			<scope>test</scope>
 		</dependency>
 
 		<!-- REST Assured - API testing -->

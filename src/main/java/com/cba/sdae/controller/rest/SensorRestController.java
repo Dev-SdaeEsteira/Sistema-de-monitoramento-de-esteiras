@@ -81,6 +81,10 @@ public class SensorRestController {
     @PostMapping
     public ResponseEntity<?> criar(@Valid @RequestBody Sensor sensor,
                                    @RequestParam(required = false) Long esteiraId) {
+        sensor.setId(null);
+        sensor.setApiKey(null);
+        sensor.setExcluidoEm(null);
+        sensor.setExcluidoPor(null);
         Long targetEsteiraId = esteiraId != null ? esteiraId : sensor.getEsteiraIdTransient();
         if (targetEsteiraId != null) {
             var esteira = esteiraService.buscarPorId(targetEsteiraId);

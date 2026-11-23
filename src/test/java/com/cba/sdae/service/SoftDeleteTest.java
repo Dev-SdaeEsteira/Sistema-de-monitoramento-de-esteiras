@@ -100,10 +100,13 @@ public class SoftDeleteTest {
         // Soft delete esteira
         esteiraService.deletar(savedEsteira.getId());
         
-        // Verify sensors are still accessible but might need manual cascade handling
-        // Note: With soft-delete and cascadeType.ALL removed, sensors won't auto-delete
-        // This test verifies the current behavior
-        assertThat(sensorRepository.findById(sensor1.getId())).isPresent();
-        assertThat(sensorRepository.findById(sensor2.getId())).isPresent();
+        // Verify sensors were also soft-deleted in cascade
+        Sensor s1 = sensorRepository.findById(sensor1.getId()).orElseThrow();
+        Sensor s2 = sensorRepository.findById(sensor2.getId()).orElseThrow();
+        assertThat(s1.isExcluido()).isTrue();
+        assertThat(s1.getExcluidoEm()).isNotNull();
+        assertThat(s2.isExcluido()).isTrue();
+        assertThat(s2.getExcluidoEm()).isNotNull();
+        assertThat(sensorService.listarTodos()).doesNotContain(s1, s2);
     }
 }

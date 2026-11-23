@@ -72,14 +72,28 @@ public class SensorController {
                 ? "redirect:/sensores/novo?erro=true"
                 : "redirect:/sensores/editar/" + sensor.getId() + "?erro=true";
         try {
+            Sensor alvo;
+            if (!eraNovo) {
+                alvo = sensorService.buscarPorId(sensor.getId())
+                        .orElseThrow(() -> new IllegalArgumentException("Sensor não encontrado"));
+                alvo.setModelo(sensor.getModelo());
+                if (sensor.getLeituraAtual() != null) {
+                    alvo.setLeituraAtual(sensor.getLeituraAtual());
+                }
+            } else {
+                alvo = new Sensor();
+                alvo.setModelo(sensor.getModelo());
+                alvo.setLeituraAtual(sensor.getLeituraAtual() != null ? sensor.getLeituraAtual() : 0.0);
+            }
+
             if (esteiraId != null) {
                 var esteira = esteiraService.buscarPorId(esteiraId);
                 if (esteira.isEmpty()) return erroRedirect;
-                sensor.setEsteira(esteira.get());
+                alvo.setEsteira(esteira.get());
             }
-            if (sensor.getEsteira() == null) return erroRedirect;
+            if (alvo.getEsteira() == null) return erroRedirect;
 
-            Sensor salvo = sensorService.salvar(sensor);
+            Sensor salvo = sensorService.salvar(alvo);
 
             return eraNovo
                     ? "redirect:/sensores/editar/" + salvo.getId() + "?criado=true"

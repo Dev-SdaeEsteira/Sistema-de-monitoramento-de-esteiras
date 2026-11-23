@@ -99,6 +99,7 @@
 
     /* ---------- Loading automático no submit ---------- */
     document.addEventListener('submit', function (e) {
+        if (e.defaultPrevented) return;
         const form = e.target;
         // Ignora forms que já têm seu próprio botão de confirmação
         // (esse fluxo já adiciona o loading manualmente acima).

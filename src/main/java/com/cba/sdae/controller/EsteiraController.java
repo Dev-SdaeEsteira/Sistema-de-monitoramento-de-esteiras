@@ -42,6 +42,7 @@ public class EsteiraController {
         model.addAttribute("totalFuncionando",  esteiraService.contarFuncionando());
         model.addAttribute("totalParadas",      esteiraService.contarParadas());
         model.addAttribute("totalOffline",      esteiraService.contarOffline());
+        model.addAttribute("totalManutencao",   esteiraService.contarManutencao());
         model.addAttribute("totalAlertas",      alertaService.contarTotal());
         model.addAttribute("totalSensores",     sensorService.contarTotal());
         return "esteiras/esteiras";
@@ -65,8 +66,21 @@ public class EsteiraController {
     public String salvar(@ModelAttribute Esteira esteira) {
         Long idExistente = esteira.getId();
         try {
-            if (esteira.getAtiva() == null) esteira.setAtiva(true);
-            esteiraService.salvar(esteira);
+            if (idExistente != null) {
+                Esteira existente = esteiraService.buscarPorId(idExistente)
+                        .orElseThrow(() -> new IllegalArgumentException("Esteira não encontrada: " + idExistente));
+                existente.setNome(esteira.getNome());
+                existente.setLocalizacao(esteira.getLocalizacao());
+                existente.setAtiva(esteira.getAtiva() != null ? esteira.getAtiva() : true);
+                esteiraService.salvar(existente);
+            } else {
+                Esteira nova = new Esteira(
+                        esteira.getNome(),
+                        esteira.getLocalizacao(),
+                        esteira.getAtiva() != null ? esteira.getAtiva() : true
+                );
+                esteiraService.salvar(nova);
+            }
             return "redirect:/esteiras";
         } catch (Exception e) {
             return idExistente != null
