@@ -681,7 +681,7 @@
 
         <!-- Mensagem de erro vinda do backend -->
         <div class="feedback-msg show error" th:if="${erro}" style="display:flex;">
-            <span id="feedbackIcon">⚠</span>
+            <span>⚠</span>
             <span th:text="${erro}">Erro ao cadastrar.</span>
         </div>
 
@@ -692,7 +692,7 @@
         </div>
 
         <!-- FORMULÁRIO REAL — envia para /cadastro/salvar -->
-        <form id="formCadastro" th:action="@{/cadastro/salvar}" method="post">
+        <form id="formCadastro" th:action="@{/cadastro/salvar}" method="post" onsubmit="return fazerCadastro(event)" data-sdae-skip-loading="true">
             <th:block th:replace="~{fragments/csrf :: token}"/>
 
             <!-- SEÇÃO: Dados pessoais -->
@@ -743,7 +743,7 @@
                 <div class="input-wrap">
                     <span class="input-icon">●</span>
                     <input type="password" class="form-input" id="fSenha" name="senha"
-                           placeholder="Mínimo 8 caracteres" autocomplete="new-password"
+                           placeholder="Mínimo 6 caracteres" autocomplete="new-password"
                            oninput="avaliarSenha(this.value)">
                     <button class="pw-toggle" type="button" onclick="togglePw('fSenha', this)">MOSTRAR</button>
                 </div>
@@ -770,13 +770,12 @@
             <input type="hidden" name="turno"       value="MANHA">
             <input type="hidden" name="departamento" value="Geral">
 
-        </form>
+            <button type="submit" class="btn-cadastrar" id="btnCadastrar">
+                <span class="btn-text">Criar Conta</span>
+                <span class="btn-spinner"><span class="spinner"></span></span>
+            </button>
 
-        <!-- Botão fora do form — JS valida antes de submeter -->
-        <button class="btn-cadastrar" id="btnCadastrar" onclick="fazerCadastro()">
-            <span class="btn-text">Criar Conta</span>
-            <span class="btn-spinner"><span class="spinner"></span></span>
-        </button>
+        </form>
 
         <div class="back-link">
             Já possui conta? <a th:href="@{/login}">Acessar o sistema</a>
@@ -803,7 +802,7 @@
         const fill = document.getElementById('strengthFill');
         const text = document.getElementById('strengthText');
         let score = 0;
-        if (val.length >= 8) score++;
+        if (val.length >= 6) score++;
         if (/[A-Z]/.test(val)) score++;
         if (/[0-9]/.test(val)) score++;
         if (/[^A-Za-z0-9]/.test(val)) score++;
@@ -841,7 +840,7 @@
     }
 
     // ── Valida e submete o formulário real ───────────────────────
-    function fazerCadastro() {
+    function fazerCadastro(event) {
         esconderFeedback();
         limparErros();
 
@@ -852,31 +851,32 @@
         const senha     = document.getElementById('fSenha').value;
         const confirmar = document.getElementById('fConfirmar').value;
 
-        // Validações client-side
+        // Validações client-side (alinhadas ao backend: mínimo 6 caracteres)
         const erros = [];
         if (!nome)      erros.push('fNome');
         if (!sobrenome) erros.push('fSobrenome');
         if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) erros.push('fEmail');
         if (!matricula) erros.push('fMatricula');
-        if (!senha || senha.length < 8) erros.push('fSenha');
+        if (!senha || senha.length < 6) erros.push('fSenha');
         if (senha !== confirmar) erros.push('fConfirmar');
 
         if (erros.length > 0) {
+            if (event) event.preventDefault();
             erros.forEach(id => marcarErro(id));
             let msg = 'Preencha todos os campos obrigatórios.';
             if (erros.includes('fEmail'))    msg = 'Informe um e-mail corporativo válido.';
-            if (erros.includes('fSenha') && senha.length > 0 && senha.length < 8)
-                msg = 'A senha deve ter pelo menos 8 caracteres.';
+            if (erros.includes('fSenha') && senha.length > 0 && senha.length < 6)
+                msg = 'A senha deve ter pelo menos 6 caracteres.';
             if (erros.includes('fConfirmar') && confirmar.length > 0)
                 msg = 'As senhas não coincidem.';
             mostrarFeedback('error', msg);
-            return;
+            return false;
         }
 
         const btn = document.getElementById('btnCadastrar');
         btn.classList.add('loading');
-
-        document.getElementById('formCadastro').submit();
+        btn.disabled = true;
+        return true;
     }
 
     document.addEventListener('DOMContentLoaded', () => {

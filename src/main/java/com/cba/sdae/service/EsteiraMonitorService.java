@@ -60,7 +60,7 @@ public class EsteiraMonitorService {
             // 1. Verifica se ficou OFFLINE (sem qualquer comunicação do sensor)
             if (esteira.getUltimoContato() != null) {
                 long segsSemContato = Duration.between(esteira.getUltimoContato(), agora).getSeconds();
-                if (segsSemContato > offlineTimeout && estadoAtual != EstadoEsteira.OFFLINE) {
+                if (segsSemContato >= offlineTimeout && estadoAtual != EstadoEsteira.OFFLINE) {
                     log.warn("Esteira {} [ID {}] sem comunicação há {}s. Marcando como OFFLINE.",
                             esteira.getNome(), esteira.getId(), segsSemContato);
 

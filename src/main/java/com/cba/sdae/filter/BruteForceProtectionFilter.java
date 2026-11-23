@@ -43,10 +43,12 @@ public class BruteForceProtectionFilter extends OncePerRequestFilter {
 
             if (loginAttemptService.isBlocked(blockKey)) {
                 log.warn("Tentativa de login bloqueada para IP: {}, Identificador: {}", clientIP, loginIdentifier);
-                // CORRIGIDO: HttpServletResponse.SC_TOO_MANY_REQUESTS não existe.
-                // Usamos o HttpStatus do Spring (429).
+                if (requestURI.equals("/login")) {
+                    response.sendRedirect("/login?bloqueado=true");
+                    return;
+                }
                 response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
-                response.setContentType("application/json");
+                response.setContentType("application/json;charset=UTF-8");
                 response.getWriter().write("{\"erro\":\"Muitas tentativas de login. Tente novamente em 15 minutos.\"}");
                 return;
             }
@@ -56,21 +58,17 @@ public class BruteForceProtectionFilter extends OncePerRequestFilter {
     }
 
     private String getClientIP(HttpServletRequest request) {
-        String xfHeader = request.getHeader("X-Forwarded-For");
-        if (xfHeader == null) {
-            return request.getRemoteAddr();
-        }
-        return xfHeader.split(",")[0];
+        return request.getRemoteAddr();
     }
 
     private String getLoginIdentifier(HttpServletRequest request) {
         // For form login, get from parameters
         String username = request.getParameter("email");
-        if (username != null && !username.isEmpty()) {
-            return username;
+        if (username != null && !username.isBlank()) {
+            return username.trim().toLowerCase();
         }
 
-        // For REST API login, we'll handle this in the controller
+        // For REST API login, handled in AuthRestController
         return "unknown";
     }
 }

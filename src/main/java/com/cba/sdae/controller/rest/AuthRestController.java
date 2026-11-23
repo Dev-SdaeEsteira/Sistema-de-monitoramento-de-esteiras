@@ -43,9 +43,11 @@ public class AuthRestController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Map<String, String> body, HttpServletRequest request) {
-        String loginInput = body.getOrDefault("login", "").trim();
-        String senha      = body.getOrDefault("senha", "");
+    public ResponseEntity<?> login(@RequestBody(required = false) Map<String, String> body, HttpServletRequest request) {
+        String rawLogin   = body != null ? body.get("login") : null;
+        String rawSenha   = body != null ? body.get("senha") : null;
+        String loginInput = rawLogin != null ? rawLogin.trim() : "";
+        String senha      = rawSenha != null ? rawSenha : "";
 
         if (loginInput.isBlank() || senha.isBlank()) {
             return ResponseEntity.badRequest()
@@ -53,8 +55,8 @@ public class AuthRestController {
         }
 
         // Get client IP for brute force protection
-        String clientIP = getClientIP(request);
-        String blockKey = clientIP + ":" + loginInput;
+        String clientIP = request.getRemoteAddr();
+        String blockKey = clientIP + ":" + loginInput.toLowerCase();
 
         // Check if blocked
         if (loginAttemptService.isBlocked(blockKey)) {
@@ -113,14 +115,6 @@ public class AuthRestController {
             return ResponseEntity.status(401)
                     .body(Map.of("erro", "Usuário ou senha inválidos."));
         }
-    }
-
-    private String getClientIP(HttpServletRequest request) {
-        String xfHeader = request.getHeader("X-Forwarded-For");
-        if (xfHeader == null) {
-            return request.getRemoteAddr();
-        }
-        return xfHeader.split(",")[0];
     }
 
     /**

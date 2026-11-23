@@ -73,23 +73,32 @@ public class FuncionarioController {
         }
 
         try {
+            // Usa o cargo como nível de acesso se não informado
+            if (funcionario.getNivelAcesso() == null || funcionario.getNivelAcesso().isBlank())
+                funcionario.setNivelAcesso(funcionario.getCargo());
+
             if (edicao) {
                 // Edição: preserva a senha atual (já em hash) se o campo vier em branco;
                 // se vier preenchida, re-encoda a nova senha.
-                var existente = funcionarioService.buscarPorId(funcionario.getId());
-                if (existente.isEmpty()) return "redirect:/admin";
+                var existenteOpt = funcionarioService.buscarPorId(funcionario.getId());
+                if (existenteOpt.isEmpty()) return "redirect:/admin";
+                Funcionario existente = existenteOpt.get();
+
+                boolean eraAdmin = "ADMINISTRADOR".equalsIgnoreCase(existente.getNivelAcesso());
+                boolean continuaAdmin = "ADMINISTRADOR".equalsIgnoreCase(funcionario.getNivelAcesso());
+                if (eraAdmin && !continuaAdmin && funcionarioService.contarPorNivelAcesso("ADMINISTRADOR") <= 1) {
+                    return voltarComErro(funcionario, model, telaForm,
+                            "Não é possível alterar o nível de acesso do último administrador do sistema.");
+                }
+
                 if (funcionario.getSenha() == null || funcionario.getSenha().isBlank()) {
-                    funcionario.setSenha(existente.get().getSenha());
+                    funcionario.setSenha(existente.getSenha());
                 } else {
                     funcionario.setSenha(passwordEncoder.encode(funcionario.getSenha()));
                 }
             } else {
                 funcionario.setSenha(passwordEncoder.encode(funcionario.getSenha()));
             }
-
-            // Usa o cargo como nível de acesso se não informado
-            if (funcionario.getNivelAcesso() == null || funcionario.getNivelAcesso().isBlank())
-                funcionario.setNivelAcesso(funcionario.getCargo());
 
             funcionarioService.salvar(funcionario);
             return "redirect:/admin?sucesso=true";

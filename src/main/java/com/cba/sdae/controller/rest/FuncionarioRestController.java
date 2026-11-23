@@ -37,6 +37,13 @@ public class FuncionarioRestController {
 
     @PostMapping
     public ResponseEntity<?> criar(@Valid @RequestBody Funcionario funcionario) {
+        funcionario.setId(null);
+        funcionario.setExcluidoEm(null);
+        funcionario.setExcluidoPor(null);
+
+        if (funcionario.getSenha() == null || funcionario.getSenha().isBlank())
+            return ResponseEntity.badRequest().body(Map.of("erro", "A senha é obrigatória."));
+
         if (funcionario.getEmail() != null && funcionarioService.existePorEmail(funcionario.getEmail()))
             return ResponseEntity.badRequest().body(Map.of("erro", "E-mail já cadastrado."));
 
@@ -52,11 +59,19 @@ public class FuncionarioRestController {
     @PutMapping("/{id}")
     public ResponseEntity<?> atualizar(@PathVariable Long id, @Valid @RequestBody Funcionario dados) {
         return funcionarioService.buscarPorId(id).map(f -> {
+            boolean eraAdmin = "ADMINISTRADOR".equalsIgnoreCase(f.getNivelAcesso());
+            String novoNivel = dados.getNivelAcesso() != null ? dados.getNivelAcesso() : f.getNivelAcesso();
+            if (eraAdmin && !"ADMINISTRADOR".equalsIgnoreCase(novoNivel)
+                    && funcionarioService.contarPorNivelAcesso("ADMINISTRADOR") <= 1) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("erro", "Não é possível alterar o nível de acesso do último administrador do sistema."));
+            }
+
             f.setNome(dados.getNome());
             f.setCargo(dados.getCargo());
             f.setDepartamento(dados.getDepartamento());
             f.setTurno(dados.getTurno());
-            f.setNivelAcesso(dados.getNivelAcesso());
+            f.setNivelAcesso(novoNivel);
             if (dados.getEmail()     != null) f.setEmail(dados.getEmail());
             if (dados.getTelefone()  != null) f.setTelefone(dados.getTelefone());
             if (dados.getMatricula() != null) f.setMatricula(dados.getMatricula());

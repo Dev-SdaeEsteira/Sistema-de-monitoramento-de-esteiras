@@ -23,19 +23,12 @@ public class CustomAuthenticationFailureHandler implements AuthenticationFailure
                                         HttpServletResponse response,
                                         AuthenticationException exception) throws IOException {
         String username = request.getParameter("email");
-        String clientIP = getClientIP(request);
-        String blockKey = clientIP + ":" + (username != null ? username : "unknown");
-        
-        loginAttemptService.loginFailed(blockKey);
-        
-        response.sendRedirect("/login?erro=true");
-    }
+        String normalizedUser = (username != null && !username.isBlank()) ? username.trim().toLowerCase() : "unknown";
+        String clientIP = request.getRemoteAddr();
+        String blockKey = clientIP + ":" + normalizedUser;
 
-    private String getClientIP(HttpServletRequest request) {
-        String xfHeader = request.getHeader("X-Forwarded-For");
-        if (xfHeader == null) {
-            return request.getRemoteAddr();
-        }
-        return xfHeader.split(",")[0];
+        loginAttemptService.loginFailed(blockKey);
+
+        response.sendRedirect("/login?erro=true");
     }
 }

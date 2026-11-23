@@ -19,12 +19,15 @@ public class LoginController {
      *   ?logout=true → usuário acabou de sair
      */
     @GetMapping("/login")
-    public String login(@RequestParam(value = "erro",     required = false) String erro,
-                        @RequestParam(value = "logout",   required = false) String logout,
-                        @RequestParam(value = "cadastro", required = false) String cadastro,
+    public String login(@RequestParam(value = "erro",      required = false) String erro,
+                        @RequestParam(value = "bloqueado", required = false) String bloqueado,
+                        @RequestParam(value = "logout",    required = false) String logout,
+                        @RequestParam(value = "cadastro",  required = false) String cadastro,
                         Model model) {
 
-        if (erro != null) {
+        if (bloqueado != null) {
+            model.addAttribute("erro", "Muitas tentativas de login. Aguarde 15 minutos e tente novamente.");
+        } else if (erro != null) {
             model.addAttribute("erro", "E-mail ou senha incorretos. Tente novamente.");
         }
         if (logout != null) {

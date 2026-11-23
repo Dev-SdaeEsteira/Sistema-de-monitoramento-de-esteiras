@@ -422,7 +422,8 @@
                 const d = await r.json();
                 if (typeof Sessao !== 'undefined') Sessao.salvar(d.nome, d.nivel, d.login);
                 const next = params.get('next');
-                window.location.replace(next || '/dashboard');
+                const destino = (next && next.startsWith('/') && !next.startsWith('//')) ? next : '/dashboard';
+                window.location.replace(destino);
             }
         } catch (_){
         }

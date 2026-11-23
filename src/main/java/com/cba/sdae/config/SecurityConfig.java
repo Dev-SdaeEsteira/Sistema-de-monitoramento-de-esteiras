@@ -1,6 +1,7 @@
 package com.cba.sdae.config;
 
 import com.cba.sdae.filter.BruteForceProtectionFilter;
+import com.cba.sdae.service.LoginAttemptService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
@@ -38,15 +39,18 @@ public class SecurityConfig {
     private final SdaeUserDetailsService userDetailsService;
     private final BruteForceProtectionFilter bruteForceProtectionFilter;
     private final CustomAuthenticationFailureHandler authenticationFailureHandler;
+    private final LoginAttemptService loginAttemptService;
     private final Environment environment;
 
     public SecurityConfig(SdaeUserDetailsService userDetailsService,
                           BruteForceProtectionFilter bruteForceProtectionFilter,
                           CustomAuthenticationFailureHandler authenticationFailureHandler,
+                          LoginAttemptService loginAttemptService,
                           Environment environment) {
         this.userDetailsService = userDetailsService;
         this.bruteForceProtectionFilter = bruteForceProtectionFilter;
         this.authenticationFailureHandler = authenticationFailureHandler;
+        this.loginAttemptService = loginAttemptService;
         this.environment = environment;
     }
 
@@ -150,7 +154,14 @@ public class SecurityConfig {
                         .loginProcessingUrl("/login")
                         .usernameParameter("email")
                         .passwordParameter("senha")
-                        .defaultSuccessUrl("/dashboard", true)
+                        .successHandler((request, response, authentication) -> {
+                            String username = request.getParameter("email");
+                            String normalizedUser = (username != null && !username.isBlank())
+                                    ? username.trim().toLowerCase()
+                                    : authentication.getName().toLowerCase();
+                            loginAttemptService.loginSucceeded(request.getRemoteAddr() + ":" + normalizedUser);
+                            response.sendRedirect("/dashboard");
+                        })
                         .failureHandler(authenticationFailureHandler)
                         .permitAll()
                 )
