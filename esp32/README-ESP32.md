@@ -122,10 +122,7 @@ for NORMAL, um novo Alerta na tela de Relatórios.
 | LDR (módulo) GND   | GND        |
 | LDR (módulo) AO    | GPIO 34    |
 
-O laser fica sempre aceso, apontado pro LDR (ou refletindo numa
-superfície fixa perto da esteira). Quando a esteira treme, o feixe balança
-um pouco e a leitura do LDR oscila mais — é essa oscilação que o firmware
-mede e transforma em porcentagem.
+O laser fica sempre aceso, apontado diretamente para o LDR através da linha da esteira. O ESP32 amostra o LDR a 40 Hz (25 ms) com histerese (`LDR_THRESHOLD ± 100`) e debounce de 150 ms: quando a movimentação da esteira gera transições/pulsos no feixe, o sistema mantém o estado `RUNNING`; após 15 segundos sem pulsos (`STOP_TIMEOUT`), sinaliza `STOPPED`; e se o feixe ficar interrompido sem pulsos, o servidor registra `LASER_LOST` e dispara alerta crítico imediatamente.
 
 ## Coisas para ter em mente (próximos passos possíveis)
 

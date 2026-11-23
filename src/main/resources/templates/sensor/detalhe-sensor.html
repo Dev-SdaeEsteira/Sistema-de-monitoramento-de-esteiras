@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -69,7 +70,7 @@
                 </div>
                 <div class="stat-item">
                     <div class="stat-label">Tipo</div>
-                    <div class="stat-value">Laser + LDR</div>
+                    <div class="stat-value" th:text="${sensor.tipo != null ? sensor.tipo : 'Laser + LDR'}">Laser + LDR</div>
                 </div>
             </div>
         </div>
@@ -82,12 +83,16 @@
             </div>
             <div class="card-body">
                 <div class="status-box">
-                    <strong>Vibração Atual</strong>
+                    <strong>Índice de Risco Atual</strong>
                     <div class="status-value" th:text="${sensor.leituraAtual != null} ? ${#numbers.formatDecimal(sensor.leituraAtual, 0, 1)} + '%' : '0.0%'">0.0%</div>
                 </div>
                 <div class="stat-item">
-                    <div class="stat-label">Classificação</div>
-                    <div class="stat-value" th:text="${sensor.nivelRisco != null ? sensor.nivelRisco.name() : 'NORMAL'}">NORMAL</div>
+                    <div class="stat-label">LDR Atual (ADC)</div>
+                    <div class="stat-value" th:text="${sensor.ultimoValorLdr != null ? sensor.ultimoValorLdr : 0}">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Feixe Laser</div>
+                    <div class="stat-value" th:text="${sensor.laserDetectado != null and sensor.laserDetectado} ? 'Detectado' : 'Interrompido'">Detectado</div>
                 </div>
             </div>
         </div>
@@ -98,9 +103,10 @@
                 <div class="card-title">Informações</div>
             </div>
             <div class="card-body">
-                <div class="stat-item">
+                <div class="stat-item" sec:authorize="hasAnyRole('ENGENHEIRO','ADMINISTRADOR')">
                     <div class="stat-label">API Key</div>
-                    <div class="stat-value" style="font-size:11px;word-break:break-all;" th:text="${sensor.apiKey != null} ? ${sensor.apiKey.substring(0, 8)} + '...' : 'N/A'">xxxxxxxx...</div>
+                    <div class="stat-value" style="font-size:11px;word-break:break-all;"
+                         th:text="${sensor.apiKey != null and #strings.length(sensor.apiKey) >= 8} ? ${sensor.apiKey.substring(0, 8)} + '...' : (${sensor.apiKey != null} ? ${sensor.apiKey} : 'N/A')">xxxxxxxx...</div>
                 </div>
                 <div class="stat-item">
                     <div class="stat-label">Esteira</div>
@@ -108,7 +114,11 @@
                 </div>
                 <div class="stat-item">
                     <div class="stat-label">Última Leitura</div>
-                    <div class="stat-value" th:text="${sensor.ultimaLeituraTexto}">há 5 min</div>
+                    <div class="stat-value" th:text="${sensor.ultimaLeituraTexto}">—</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Pulsos Acumulados</div>
+                    <div class="stat-value" th:text="${sensor.quantidadePulsos != null ? sensor.quantidadePulsos : 0}">0</div>
                 </div>
             </div>
         </div>
@@ -117,15 +127,15 @@
     <!-- Gráfico de Histórico -->
     <div class="card full-width">
         <div class="card-head">
-            <div class="card-title">Histórico de Leituras</div>
-            <span style="font-family:var(--font-mono);font-size:11px;color:#4A5568;">Últimas 24h</span>
+            <div class="card-title">Histórico de Leituras (LDR)</div>
+            <span style="font-family:var(--font-mono);font-size:11px;color:#4A5568;">Últimas 30 leituras</span>
         </div>
         <div class="card-body">
             <p th:if="${#lists.isEmpty(historico)}" style="text-align:center;color:#4A5568;margin-bottom:20px;">
                 Ainda não há leituras gravadas para este sensor.
             </p>
             <p th:unless="${#lists.isEmpty(historico)}" style="text-align:center;color:#4A5568;margin-bottom:20px;">
-                Leituras persistidas no banco (mais antigas → mais recentes).
+                Leituras LDR (ADC 0–4095) persistidas no banco (mais antigas → mais recentes).
             </p>
             <div class="chart-container">
                 <canvas id="historicoChart"></canvas>
@@ -141,24 +151,24 @@
 
     const historico = /*[[${historico}]]*/ [];
     const ctx = document.getElementById('historicoChart')?.getContext('2d');
-    if (ctx) {
+    if (ctx && typeof Chart !== 'undefined') {
         const pontos = Array.isArray(historico) ? historico : [];
         const labels = pontos.map(h => {
             if (!h || !h.dataHora) return '';
             const d = new Date(h.dataHora);
-            return isNaN(d) ? String(h.dataHora) : d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+            return isNaN(d) ? String(h.dataHora) : d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
         });
-        const valores = pontos.map(h => Number(h && h.valor != null ? h.valor : 0));
+        const valores = pontos.map(h => Number(h && h.valorLdr != null ? h.valorLdr : (h && h.valor != null ? h.valor : 0)));
         new Chart(ctx, {
             type: 'line',
             data: {
                 labels: labels.length ? labels : ['—'],
                 datasets: [{
-                    label: 'Vibração (%)',
+                    label: 'Leitura LDR (ADC)',
                     data: valores.length ? valores : [0],
                     borderColor: '#2563EB',
                     backgroundColor: 'rgba(37, 99, 235, 0.1)',
-                    tension: 0.4,
+                    tension: 0.35,
                     fill: true,
                     pointRadius: 4,
                     pointHoverRadius: 6
@@ -169,14 +179,13 @@
                 maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        labels: { font: { family: 'var(--font-mono)' } }
+                        labels: { font: { family: 'IBM Plex Mono, monospace' } }
                     }
                 },
                 scales: {
                     y: {
                         min: 0,
-                        max: 100,
-                        ticks: { callback: v => v + '%' }
+                        max: 4095
                     }
                 }
             }

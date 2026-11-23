@@ -654,7 +654,7 @@
                         <div class="dd d1"></div><div class="dd d2"></div><div class="dd d3"></div>
                     </div>
                     <div class="dm-title">SDAE · Painel de Monitoramento · Esteira #3</div>
-                    <div class="dm-live"><div class="live-dot"></div> LIVE · 5s</div>
+                    <div class="dm-live"><div class="live-dot"></div> LIVE · 2s</div>
                 </div>
 
                 <!-- Laser scan visualization -->
@@ -763,7 +763,7 @@
         <div class="t-item t-sep">·</div>
         <div class="t-item"><span class="t-key">UPTIME</span><span class="t-val">99.9%</span></div>
         <div class="t-item t-sep">·</div>
-        <div class="t-item"><span class="t-key">TAXA_AMOSTRAGEM</span><span class="t-val">50 Hz</span></div>
+        <div class="t-item"><span class="t-key">TAXA_AMOSTRAGEM</span><span class="t-val">40 Hz</span></div>
         <div class="t-item t-sep">·</div>
         <div class="t-item"><span class="t-key">TELEMETRIA</span><span class="t-ok">● NORMAL</span></div>
         <div class="t-item t-sep">·</div>
@@ -779,7 +779,7 @@
         <div class="t-item t-sep">·</div>
         <div class="t-item"><span class="t-key">UPTIME</span><span class="t-val">99.9%</span></div>
         <div class="t-item t-sep">·</div>
-        <div class="t-item"><span class="t-key">TAXA_AMOSTRAGEM</span><span class="t-val">50 Hz</span></div>
+        <div class="t-item"><span class="t-key">TAXA_AMOSTRAGEM</span><span class="t-val">40 Hz</span></div>
         <div class="t-item t-sep">·</div>
         <div class="t-item"><span class="t-key">TELEMETRIA</span><span class="t-ok">● NORMAL</span></div>
     </div>
@@ -798,9 +798,9 @@
                     <circle cx="12" cy="12" r="2"/><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
                 </svg>
             </div>
-            <h3>Varredura Laser 3D</h3>
-            <p>Um sensor laser + LDR (Arduino/ESP32) mede a vibração e trepidação da esteira em tempo real (0–100%), disparando alertas automáticos quando os limites são ultrapassados.</p>
-            <div class="feat-mono">ESP32 · Laser + LDR · 0–100% Vibração</div>
+            <h3>Sensor Óptico Laser + LDR</h3>
+            <p>O ESP32 amostra o módulo LDR (GPIO 34, ADC 12 bits) a 40 Hz com histerese e debounce, detectando pulsos de movimento e interrupções no feixe do laser KY-008.</p>
+            <div class="feat-mono">ESP32 · Laser KY-008 + LDR KY-018 · 40 Hz</div>
         </div>
 
         <div class="feat-card reveal" style="transition-delay:.08s" data-tilt>
@@ -809,9 +809,9 @@
                     <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
                 </svg>
             </div>
-            <h3>Resposta em ms</h3>
-            <p>Detectado o desvio, um alerta automático é enviado ao operador — evitando desperdícios de material e garantindo continuidade operacional.</p>
-            <div class="feat-mono">Tempo de resposta &lt; 80ms</div>
+            <h3>Resposta Imediata</h3>
+            <p>Ao detectar interrupção do feixe ou ausência de pulsos, o servidor registra a transição de estado e dispara alertas críticos automaticamente para a equipe.</p>
+            <div class="feat-mono">Watchdog 2s · Timeout configurável (15s)</div>
         </div>
 
         <div class="feat-card reveal" style="transition-delay:.16s" data-tilt>
@@ -821,7 +821,7 @@
                 </svg>
             </div>
             <h3>Dashboard em Tempo Real</h3>
-            <p>Visualize altura de pico, desvio lateral, histórico de acionamentos e estado de cada sensor com atualização a cada 5 segundos.</p>
+            <p>Visualize o estado operacional de cada esteira, leitura LDR, histórico de eventos, alertas críticos e gráficos por período com atualização a cada 2 segundos.</p>
             <div class="feat-mono">Polling HTTP · atualização a cada 2s</div>
         </div>
 
@@ -870,26 +870,26 @@
         <div class="proc-row">
             <div class="proc-step reveal">
                 <div class="proc-num">1</div>
-                <h4>Varredura Laser</h4>
-                <p>O sensor emite pulsos laser a 50Hz, mapeando o perfil transversal da bauxita na esteira em 3D.</p>
-                <span class="proc-tag pt-cyan">50 Hz · Contínuo</span>
+                <h4>Leitura Óptica</h4>
+                <p>O laser KY-008 projeta um feixe contínuo no LDR (GPIO 34), amostrado pelo ESP32 a 40 Hz (25 ms) com resolução de 12 bits.</p>
+                <span class="proc-tag pt-cyan">40 Hz · Contínuo</span>
             </div>
             <div class="proc-step reveal" style="transition-delay:.12s">
                 <div class="proc-num">2</div>
-                <h4>Análise do Perfil</h4>
-                <p>O algoritmo compara o perfil medido com os parâmetros nominais e detecta qualquer desvio dimensional.</p>
+                <h4>Detecção de Pulsos</h4>
+                <p>O firmware aplica histerese e debounce de 150 ms na borda para distinguir movimento real da correia de ruídos elétricos.</p>
                 <span class="proc-tag pt-blue">Edge Computing</span>
             </div>
             <div class="proc-step reveal" style="transition-delay:.24s">
                 <div class="proc-num">3</div>
-                <h4>Acionamento</h4>
-                <p>Se o desvio superar o limiar configurado, um alerta é ativado automaticamente em tempo real, com histórico e rastreabilidade.</p>
-                <span class="proc-tag pt-amber">&lt; 80ms resposta</span>
+                <h4>Análise & Watchdog</h4>
+                <p>O backend recebe telemetria autenticada por X-API-Key e detecta falhas de feixe, paradas (15 s) ou perda de comunicação (OFFLINE).</p>
+                <span class="proc-tag pt-amber">Watchdog 2s</span>
             </div>
             <div class="proc-step reveal" style="transition-delay:.36s">
                 <div class="proc-num">4</div>
                 <h4>Registro & Alerta</h4>
-                <p>O evento é registrado no banco com timestamp, snapshot do perfil e notificação enviada à equipe.</p>
+                <p>Eventos, leituras LDR e alertas críticos são persistidos no MySQL com trilha auditável e exportação de relatório em PDF.</p>
                 <span class="proc-tag pt-green">Log Auditável</span>
             </div>
         </div>
@@ -908,7 +908,7 @@
                 <div class="stc-icon" style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.15)">⬤</div>
                 <div>
                     <div class="stc-label">Sensores Laser</div>
-                    <div class="stc-sub">ESP32 · Laser + LDR</div>
+                    <div class="stc-sub">ESP32 · Laser KY-008 + LDR (GPIO 34)</div>
                 </div>
                 <span class="stc-badge sb-g">ONLINE</span>
             </div>
@@ -919,10 +919,10 @@
             <div class="stc-head">
                 <div class="stc-icon" style="background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.15)">◈</div>
                 <div>
-                    <div class="stc-label">Relé de Parada</div>
-                    <div class="stc-sub">Atuação imediata em caso de desalinhamento</div>
+                    <div class="stc-label">Watchdog de Parada</div>
+                    <div class="stc-sub">Detecção automática de parada e offline (15s)</div>
                 </div>
-                <span class="stc-badge sb-b">STANDBY</span>
+                <span class="stc-badge sb-b">ATIVO</span>
             </div>
             <div class="stc-prog"><div class="stcp-fill" style="width:100%"></div></div>
         </div>
@@ -932,7 +932,7 @@
                 <div class="stc-icon" style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.15)">⟳</div>
                 <div>
                     <div class="stc-label">Dashboard SDAE</div>
-                    <div class="stc-sub">Atualização a cada 5 segundos</div>
+                    <div class="stc-sub">Atualização automática a cada 2 segundos</div>
                 </div>
                 <span class="stc-badge sb-a">LIVE</span>
             </div>
@@ -944,7 +944,7 @@
                 <div class="stc-icon" style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.15)">✦</div>
                 <div>
                     <div class="stc-label">Servidor de Dados</div>
-                    <div class="stc-sub">Logs · Histórico · Relatórios</div>
+                    <div class="stc-sub">MySQL 8 · Histórico · Relatórios PDF</div>
                 </div>
                 <span class="stc-badge sb-g">ONLINE</span>
             </div>
@@ -985,12 +985,12 @@
             <div class="stat-desc">Uptime garantido pela operação</div>
         </div>
         <div class="stat-item reveal" style="transition-delay:.1s">
-            <div class="stat-num"><span>&lt;80ms</span></div>
-            <div class="stat-desc">Tempo de resposta de alerta</div>
+            <div class="stat-num"><span>2s</span></div>
+            <div class="stat-desc">Intervalo de atualização do painel</div>
         </div>
         <div class="stat-item reveal" style="transition-delay:.2s">
-            <div class="stat-num"><span>50Hz</span></div>
-            <div class="stat-desc">Taxa de varredura dos sensores</div>
+            <div class="stat-num"><span>40Hz</span></div>
+            <div class="stat-desc">Taxa de amostragem do sensor LDR</div>
         </div>
         <div class="stat-item reveal" style="transition-delay:.3s">
             <div class="stat-num"><span>24/7</span></div>

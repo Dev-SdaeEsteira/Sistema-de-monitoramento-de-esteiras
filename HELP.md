@@ -28,6 +28,7 @@ The following guides illustrate how to use some features concretely:
 ### Project-Specific Documentation
 
 See the following files for detailed setup and usage information:
-* `README-SETUP.md` - Project setup and configuration instructions
-* `README-ESP32.md` - ESP32 firmware integration guide
+* `README.md` - Visão geral do projeto, arquitetura e roteiro de demonstração
+* `README-SETUP.md` - Configuração do ambiente e variáveis do MySQL
+* `esp32/README-ESP32.md` - Guia de integração e gravação do firmware ESP32
 

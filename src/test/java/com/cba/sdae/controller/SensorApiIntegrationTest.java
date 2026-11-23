@@ -190,6 +190,11 @@ class SensorApiIntegrationTest extends BaseIntegrationTest {
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().string(
                         org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("/sensores/novo"))));
 
+        mockMvc.perform(get("/sensores/detalhe/" + sensor.getId()))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().string(
+                        org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("CHAVE-AP"))));
+
         mockMvc.perform(get("/relatorios"))
                 .andExpect(status().isOk())
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().string(
