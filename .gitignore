@@ -32,5 +32,9 @@ Thumbs.db
 !.env.example
 application-local.properties
 
+# Python (ponte USB)
+__pycache__/
+*.pyc
+
 # Apresentação e prints (mantidos apenas localmente)
 prints-apresentacao/
