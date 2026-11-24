@@ -316,24 +316,24 @@
         </h1>
 
         <p class="brand-desc">
-            Sistema SDAE — Sensores ópticos (Laser + LDR com ESP32) monitoram o movimento das esteiras em tempo real,
-            detectando paradas, falhas de comunicação e gerando alertas automáticos no painel.
+            Sistema SDAE — Sensores MPU-6050 (acelerômetro e giroscópio) e ópticos (Laser + LDR) com ESP32/Arduino monitoram
+            o movimento das esteiras em tempo real via Wi-Fi ou USB, detectando paradas, vibrações e falhas automaticamente.
         </p>
 
         <div class="sys-indicators">
             <div class="sys-ind">
                 <div class="sys-ind-icon si-green">⬤</div>
                 <div class="sys-ind-text">
-                    <div class="sys-ind-label">Sensores Ópticos Ativos</div>
-                    <div class="sys-ind-sub">ESP32 · Laser KY-008 · LDR KY-018</div>
+                    <div class="sys-ind-label">Sensores MPU-6050 &amp; Ópticos</div>
+                    <div class="sys-ind-sub">ESP32 / Arduino · I2C 6 Eixos · Wi-Fi ou USB</div>
                 </div>
                 <span class="sys-ind-badge badge-online">ONLINE</span>
             </div>
             <div class="sys-ind">
                 <div class="sys-ind-icon si-blue">◈</div>
                 <div class="sys-ind-text">
-                    <div class="sys-ind-label">Detecção de Pulsos</div>
-                    <div class="sys-ind-sub">Amostragem 40 Hz com histerese e debounce</div>
+                    <div class="sys-ind-label">Detecção de Movimento</div>
+                    <div class="sys-ind-sub">Amostragem 50 Hz com filtro EMA e debounce</div>
                 </div>
                 <span class="sys-ind-badge badge-active">ATIVO</span>
             </div>

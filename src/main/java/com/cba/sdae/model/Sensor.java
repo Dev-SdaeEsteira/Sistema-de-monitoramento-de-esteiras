@@ -67,6 +67,34 @@ public class Sensor {
     @Column(name = "ultimo_contato")
     private LocalDateTime ultimoContato;
 
+    // Telemetria do sensor MPU-6050 (Acelerômetro em g + Giroscópio em °/s)
+    @Column(name = "aceleracao_x")
+    private Double aceleracaoX;
+
+    @Column(name = "aceleracao_y")
+    private Double aceleracaoY;
+
+    @Column(name = "aceleracao_z")
+    private Double aceleracaoZ;
+
+    @Column(name = "giroscopio_x")
+    private Double giroscopioX;
+
+    @Column(name = "giroscopio_y")
+    private Double giroscopioY;
+
+    @Column(name = "giroscopio_z")
+    private Double giroscopioZ;
+
+    @Column(name = "vibracao_rms")
+    private Double vibracaoRms;
+
+    @Column(name = "vibracao_pico")
+    private Double vibracaoPico;
+
+    @Column(name = "velocidade_angular")
+    private Double velocidadeAngular;
+
     // Muitos sensores pertencem a uma esteira
     @ManyToOne
     @JoinColumn(name = "esteira_id", nullable = false)
@@ -145,6 +173,41 @@ public class Sensor {
 
     public LocalDateTime getUltimoContato()    { return ultimoContato; }
     public void setUltimoContato(LocalDateTime u) { this.ultimoContato = u; }
+
+    public Double getAceleracaoX()             { return aceleracaoX; }
+    public void setAceleracaoX(Double ax)      { this.aceleracaoX = ax; }
+
+    public Double getAceleracaoY()             { return aceleracaoY; }
+    public void setAceleracaoY(Double ay)      { this.aceleracaoY = ay; }
+
+    public Double getAceleracaoZ()             { return aceleracaoZ; }
+    public void setAceleracaoZ(Double az)      { this.aceleracaoZ = az; }
+
+    public Double getGiroscopioX()             { return giroscopioX; }
+    public void setGiroscopioX(Double gx)      { this.giroscopioX = gx; }
+
+    public Double getGiroscopioY()             { return giroscopioY; }
+    public void setGiroscopioY(Double gy)      { this.giroscopioY = gy; }
+
+    public Double getGiroscopioZ()             { return giroscopioZ; }
+    public void setGiroscopioZ(Double gz)      { this.giroscopioZ = gz; }
+
+    public Double getVibracaoRms()             { return vibracaoRms; }
+    public void setVibracaoRms(Double v)       { this.vibracaoRms = v; }
+
+    public Double getVibracaoPico()            { return vibracaoPico; }
+    public void setVibracaoPico(Double v)      { this.vibracaoPico = v; }
+
+    public Double getVelocidadeAngular()       { return velocidadeAngular; }
+    public void setVelocidadeAngular(Double v) { this.velocidadeAngular = v; }
+
+    @JsonProperty("mpu6050")
+    public boolean isMpu6050() {
+        if (tipo != null && tipo.toUpperCase().contains("MPU")) {
+            return true;
+        }
+        return vibracaoRms != null || aceleracaoX != null || velocidadeAngular != null;
+    }
 
     public Esteira getEsteira()                { return esteira; }
     public void setEsteira(Esteira esteira)    { this.esteira = esteira; }

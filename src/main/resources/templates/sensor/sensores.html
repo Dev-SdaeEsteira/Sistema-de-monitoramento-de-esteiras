@@ -207,8 +207,8 @@
 <main>
     <div class="page-header">
         <div>
-            <div class="page-title">Sensores Ópticos (Laser + LDR)</div>
-            <div class="page-sub" th:text="${totalSensores} + ' dispositivo(s) monitorado(s) · ESP32 Laser + LDR'">0 dispositivo(s) monitorado(s) · ESP32 Laser + LDR</div>
+            <div class="page-title">Sensores de Monitoramento</div>
+            <div class="page-sub" th:text="${totalSensores} + ' dispositivo(s) monitorado(s) · ESP32 / Arduino (MPU-6050 &amp; Laser + LDR)'">0 dispositivo(s) monitorado(s) · ESP32 / Arduino</div>
         </div>
         <div style="display:flex;gap:8px;">
             <a sec:authorize="hasAnyRole('ENGENHEIRO','ADMINISTRADOR')" href="/sensores/novo" class="btn btn-blue">+ Novo Sensor</a>
@@ -260,7 +260,7 @@
                          th:style="${s.nivelRisco.name() == 'CRITICO'} ? 'color:var(--ruby)' : (${s.nivelRisco.name() == 'ATENCAO'} ? 'color:var(--amber)' : '')">
                         SENSOR
                     </div>
-                    <div class="sc-model" th:text="${s.tipo}">Laser + LDR</div>
+                    <div class="sc-model" th:text="${s.tipo}">MPU-6050</div>
                     <div class="sc-belt" th:text="${s.esteira != null ? s.esteira.nome + ' · ' + s.esteira.localizacao : 'Sem esteira'}">—</div>
                 </div>
                 <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
@@ -268,7 +268,7 @@
                     <div th:if="${s.nivelRisco.name() == 'ATENCAO'}" class="chip chip-warn">Atenção</div>
                     <div th:if="${s.nivelRisco.name() == 'NORMAL'}"  class="chip chip-ok">Normal</div>
 
-                    <!-- Indicador de conexão do ESP32 (Melhoria: sensor conectado) -->
+                    <!-- Indicador de conexão -->
                     <div class="chip" th:classappend="${s.conectado} ? ' chip-ok' : ' chip-off'"
                          th:text="${s.conectado} ? '● Conectado' : '○ Offline'"
                          th:title="${s.ultimaLeituraTexto}">
@@ -298,18 +298,28 @@
                 th:style="${s.nivelRisco.name() == 'CRITICO'} ? 'color:var(--ruby)' : (${s.nivelRisco.name() == 'ATENCAO'} ? 'color:var(--amber)' : '')">
             0%
           </span>
-                    <span class="sc-ml">Leitura</span>
+                    <span class="sc-ml" th:text="${s.mpu6050} ? 'Índice Risco' : 'Leitura'">Leitura</span>
                 </div>
                 <div class="sc-m">
                     <span class="sc-mv" th:text="${s.conectado} ? '● Online' : '○ Offline'"
                           th:style="${s.conectado} ? 'color:var(--emerald)' : 'color:#64748B'">—</span>
                     <span class="sc-ml">Conexão</span>
                 </div>
-                <div class="sc-m">
+                <div class="sc-m" th:if="${s.mpu6050}">
+                    <span class="sc-mv"
+                          th:text="${s.vibracaoRms != null} ? ${#numbers.formatDecimal(s.vibracaoRms, 1, 3)} + ' g' : '0.000 g'">0.000 g</span>
+                    <span class="sc-ml">Vibração RMS</span>
+                </div>
+                <div class="sc-m" th:if="${s.mpu6050}">
+                    <span class="sc-mv"
+                          th:text="${s.velocidadeAngular != null} ? ${#numbers.formatDecimal(s.velocidadeAngular, 1, 1)} + ' °/s' : '0.0 °/s'">0.0 °/s</span>
+                    <span class="sc-ml">Giroscópio</span>
+                </div>
+                <div class="sc-m" th:unless="${s.mpu6050}">
                     <span class="sc-mv" th:text="${s.nivelRisco.name()}">—</span>
                     <span class="sc-ml">Nível</span>
                 </div>
-                <div class="sc-m">
+                <div class="sc-m" th:unless="${s.mpu6050}">
                     <span class="sc-mv" th:text="'ID #' + ${s.id}">—</span>
                     <span class="sc-ml">Código</span>
                 </div>
@@ -353,11 +363,11 @@
         </div>
 
     </div><!-- /sensor-grid -->
-    <!-- COMO FUNCIONA A INTEGRAÇÃO — reflete o fluxo real ESP32 → API, sem inventar specs de hardware -->
+    <!-- COMO FUNCIONA A INTEGRAÇÃO — reflete o fluxo real ESP32/Arduino → API (Wi-Fi ou USB) -->
     <div class="spec-section">
         <div class="card-head">
             <div class="card-title">Como o Sensor se Conecta</div>
-            <span class="card-sub">Integração real via ESP32 + Chave de API</span>
+            <span class="card-sub">Integração via Wi-Fi (ESP32) ou USB Serial (Ponte Python) + X-API-Key</span>
         </div>
         <div class="spec-grid">
             <div class="spec-col">
@@ -365,12 +375,14 @@
                 <div class="spec-row"><span class="spec-key">Método</span><span class="spec-val good">HTTP POST</span></div>
                 <div class="spec-row"><span class="spec-key">Endpoint</span><span class="spec-val">/api/sensores/{id}/leitura</span></div>
                 <div class="spec-row"><span class="spec-key">Autenticação</span><span class="spec-val good">Cabeçalho X-API-Key</span></div>
-                <div class="spec-row"><span class="spec-key">Corpo da requisição</span><span class="spec-val">{ "valorLdr": 1840, "laserDetectado": true, "pulsoDetectado": true }</span></div>
+                <div class="spec-row"><span class="spec-key">Payload MPU-6050</span><span class="spec-val">{ "vibracaoRmsG": 0.14, "gyroPicoDps": 12.5, "ax": 0.01, "ay": -0.02, "az": 1.00, "pulsoDetectado": true }</span></div>
+                <div class="spec-row"><span class="spec-key">Payload Laser + LDR</span><span class="spec-val">{ "valorLdr": 1840, "laserDetectado": true, "pulsoDetectado": true }</span></div>
             </div>
             <div class="spec-col">
-                <div class="spec-col-title">Onde Encontrar a Chave</div>
+                <div class="spec-col-title">Onde Encontrar a Chave e Modos</div>
                 <div class="spec-row"><span class="spec-key">Chave de API</span><span class="spec-val good">Gerada ao salvar o sensor</span></div>
                 <div class="spec-row"><span class="spec-key">Visível em</span><span class="spec-val">Tela de edição do sensor</span></div>
+                <div class="spec-row"><span class="spec-key">Modos suportados</span><span class="spec-val good">Wi-Fi direto (ESP32) ou USB Serial</span></div>
                 <div class="spec-row"><span class="spec-key">Status de conexão</span><span class="spec-val good">Atualizado a cada leitura recebida</span></div>
                 <div class="spec-row"><span class="spec-key">Considerado offline após</span><span class="spec-val">15s sem leitura</span></div>
             </div>

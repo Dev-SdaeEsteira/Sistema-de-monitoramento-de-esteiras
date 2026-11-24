@@ -102,9 +102,17 @@
                         <input type="text" class="form-input" id="modelo" th:field="*{modelo}" required>
                     </div>
 
+                    <div class="form-group">
+                        <label class="form-label" for="tipo">Tipo de Sensor <span>*</span></label>
+                        <select class="form-select" id="tipo" th:field="*{tipo}" required>
+                            <option value="MPU-6050 (Acelerômetro + Giroscópio)">MPU-6050 (Acelerômetro + Giroscópio)</option>
+                            <option value="Laser + LDR">Laser + LDR (Óptico)</option>
+                        </select>
+                    </div>
+
                     <input type="hidden" id="leituraAtual" th:field="*{leituraAtual}">
 
-                    <div class="form-group">
+                    <div class="form-group full">
                         <label class="form-label" for="esteiraId">Esteira Vinculada <span>*</span></label>
                         <select class="form-select" id="esteiraId" name="esteiraId" required>
                             <option value="">Selecione a esteira...</option>
@@ -120,13 +128,13 @@
             </div>
         </form>
 
-        <!-- Chave de API do ESP32 — só existe depois do sensor já ter sido salvo -->
+        <!-- Chave de API do ESP32/Arduino — só existe depois do sensor já ter sido salvo -->
         <div th:if="${sensor.id != null and sensor.apiKey != null}"
              style="margin:0 24px 24px;padding:16px;border:1px dashed var(--border);border-radius:var(--r-md);background:var(--bg);">
-            <div class="card-sub" style="margin-bottom:8px;">Chave de API do ESP32</div>
+            <div class="card-sub" style="margin-bottom:8px;">Chave de API (ESP32 Wi-Fi ou Ponte USB)</div>
             <p style="font-size:13px;color:var(--muted);margin-bottom:10px;line-height:1.5;">
-                Cole esta chave na variável <code>API_KEY</code> do firmware do ESP32 deste sensor.
-                Ela é o que autentica o dispositivo — não precisa de login.
+                Cole esta chave em <code>API_KEY</code> no firmware do ESP32 (Wi-Fi) ou passe em <code>--api-key</code>
+                na ponte USB (<code>sdae_usb_bridge.py</code>). Ela autentica o sensor sem precisar de login.
             </p>
             <div style="display:flex;gap:8px;align-items:center;">
                 <input type="text" id="campoApiKey" readonly th:value="${sensor.apiKey}"

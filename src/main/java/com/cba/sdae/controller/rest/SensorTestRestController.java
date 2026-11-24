@@ -64,13 +64,28 @@ public class SensorTestRestController {
             return executarComando(id, comando);
         }
 
-        Integer valorLdr = payload.containsKey("valorLdr") ? parseInteger(payload.get("valorLdr")) : 1800;
+        com.cba.sdae.model.Mpu6050Telemetria mpu = new com.cba.sdae.model.Mpu6050Telemetria(
+                parseDouble(payload.containsKey("ax") ? payload.get("ax") : payload.get("aceleracaoX")),
+                parseDouble(payload.containsKey("ay") ? payload.get("ay") : payload.get("aceleracaoY")),
+                parseDouble(payload.containsKey("az") ? payload.get("az") : payload.get("aceleracaoZ")),
+                parseDouble(payload.containsKey("gx") ? payload.get("gx") : payload.get("giroscopioX")),
+                parseDouble(payload.containsKey("gy") ? payload.get("gy") : payload.get("giroscopioY")),
+                parseDouble(payload.containsKey("gz") ? payload.get("gz") : payload.get("giroscopioZ")),
+                parseDouble(payload.containsKey("vibracaoRmsG") ? payload.get("vibracaoRmsG") : payload.get("vibracaoRms")),
+                parseDouble(payload.containsKey("vibracaoPicoG") ? payload.get("vibracaoPicoG") : payload.get("vibracaoPico")),
+                parseDouble(payload.containsKey("gyroPicoDps") ? payload.get("gyroPicoDps") : payload.get("velocidadeAngular")),
+                payload.containsKey("sensorOk") ? parseBoolean(payload.get("sensorOk")) : null
+        );
+
+        Integer valorLdr = payload.containsKey("valorLdr") ? parseInteger(payload.get("valorLdr")) : (mpu.temDados() ? null : 1800);
         Boolean laserDetectado = payload.containsKey("laserDetectado") ? parseBoolean(payload.get("laserDetectado")) : true;
-        Boolean pulsoDetectado = payload.containsKey("pulsoDetectado") ? parseBoolean(payload.get("pulsoDetectado")) : true;
+        Boolean pulsoDetectado = payload.containsKey("pulsoDetectado")
+                ? parseBoolean(payload.get("pulsoDetectado"))
+                : (payload.containsKey("movimentoDetectado") ? parseBoolean(payload.get("movimentoDetectado")) : (mpu.temDados() ? null : true));
         Double valorLegado = payload.containsKey("valor") ? parseDouble(payload.get("valor")) : null;
 
         Map<String, Object> resultado = sensorService.processarTelemetria(
-                id, valorLdr, laserDetectado, pulsoDetectado, LocalDateTime.now(), valorLegado);
+                id, valorLdr, laserDetectado, pulsoDetectado, LocalDateTime.now(), valorLegado, mpu.temDados() ? mpu : null);
 
         return ResponseEntity.ok(resultado);
     }

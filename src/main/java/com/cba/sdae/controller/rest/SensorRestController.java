@@ -165,66 +165,72 @@ public class SensorRestController {
             return ResponseEntity.badRequest().body(Map.of("erro", "Payload de leitura não fornecido."));
         }
 
-        Integer valorLdr = null;
-        Boolean laserDetectado = null;
-        Boolean pulsoDetectado = null;
-        Double valorLegado = null;
+        Integer valorLdr = parseInteger(body.get("valorLdr"));
+        Boolean laserDetectado = parseBoolean(body.get("laserDetectado"));
+        Boolean pulsoDetectado = parseBoolean(body.containsKey("pulsoDetectado")
+                ? body.get("pulsoDetectado") : body.get("movimentoDetectado"));
+        Double valorLegado = parseDouble(body.get("valor"));
         LocalDateTime timestamp = null;
 
-        // 1. Extrai valorLdr (se presente)
-        if (body.containsKey("valorLdr") && body.get("valorLdr") != null) {
-            Object raw = body.get("valorLdr");
-            if (raw instanceof Number n) {
-                valorLdr = n.intValue();
-            } else {
-                try {
-                    valorLdr = Integer.parseInt(raw.toString().trim());
-                } catch (NumberFormatException ignored) {}
-            }
-        }
-
-        // 2. Extrai laserDetectado (se presente)
-        if (body.containsKey("laserDetectado") && body.get("laserDetectado") != null) {
-            Object raw = body.get("laserDetectado");
-            if (raw instanceof Boolean b) laserDetectado = b;
-            else laserDetectado = Boolean.parseBoolean(raw.toString().trim());
-        }
-
-        // 3. Extrai pulsoDetectado (se presente)
-        if (body.containsKey("pulsoDetectado") && body.get("pulsoDetectado") != null) {
-            Object raw = body.get("pulsoDetectado");
-            if (raw instanceof Boolean b) pulsoDetectado = b;
-            else pulsoDetectado = Boolean.parseBoolean(raw.toString().trim());
-        }
-
-        // 4. Extrai timestamp (se presente)
         if (body.containsKey("timestamp") && body.get("timestamp") != null) {
             try {
                 timestamp = LocalDateTime.parse(body.get("timestamp").toString());
             } catch (Exception ignored) {}
         }
 
-        // 5. Suporte legado para "valor" (%)
-        if (body.containsKey("valor") && body.get("valor") != null) {
-            Object raw = body.get("valor");
-            if (raw instanceof Number n) {
-                valorLegado = n.doubleValue();
-            } else {
-                try {
-                    valorLegado = Double.parseDouble(raw.toString().trim());
-                } catch (NumberFormatException ignored) {}
-            }
-        }
+        // Campos nativos do módulo MPU-6050 (acelerômetro 3 eixos em g + giroscópio 3 eixos em °/s)
+        Double ax = firstDouble(body, "ax", "aceleracaoX");
+        Double ay = firstDouble(body, "ay", "aceleracaoY");
+        Double az = firstDouble(body, "az", "aceleracaoZ");
+        Double gx = firstDouble(body, "gx", "giroscopioX");
+        Double gy = firstDouble(body, "gy", "giroscopioY");
+        Double gz = firstDouble(body, "gz", "giroscopioZ");
+        Double vibracaoRmsG  = firstDouble(body, "vibracaoRmsG", "vibracaoRms");
+        Double vibracaoPicoG = firstDouble(body, "vibracaoPicoG", "vibracaoPico");
+        Double gyroPicoDps   = firstDouble(body, "gyroPicoDps", "velocidadeAngular");
+        Boolean sensorOk     = parseBoolean(body.containsKey("sensorOk") ? body.get("sensorOk") : body.get("mpuConectado"));
 
-        // Validação mínima: precisa ter ao menos valorLdr ou valorLegado ou pulsoDetectado
-        if (valorLdr == null && valorLegado == null && pulsoDetectado == null) {
-            return ResponseEntity.badRequest().body(Map.of("erro", "Informe ao menos 'valorLdr', 'pulsoDetectado' ou 'valor'."));
+        com.cba.sdae.model.Mpu6050Telemetria mpu = new com.cba.sdae.model.Mpu6050Telemetria(
+                ax, ay, az, gx, gy, gz, vibracaoRmsG, vibracaoPicoG, gyroPicoDps, sensorOk);
+
+        // Validação mínima: precisa ter ao menos telemetria MPU-6050, valorLdr, pulsoDetectado ou valor
+        if (valorLdr == null && valorLegado == null && pulsoDetectado == null && !mpu.temDados()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "erro", "Informe telemetria MPU-6050 (ax/ay/az, gx/gy/gz, vibracaoRmsG, gyroPicoDps), 'valorLdr', 'pulsoDetectado' ou 'valor'."));
         }
 
         Map<String, Object> resultado = sensorService.processarTelemetria(
-                s.getId(), valorLdr, laserDetectado, pulsoDetectado, timestamp, valorLegado);
+                s.getId(), valorLdr, laserDetectado, pulsoDetectado, timestamp, valorLegado, mpu.temDados() ? mpu : null);
 
         return ResponseEntity.ok(resultado);
+    }
+
+    private Integer parseInteger(Object raw) {
+        if (raw == null) return null;
+        if (raw instanceof Number n) return n.intValue();
+        try { return Integer.parseInt(raw.toString().trim()); } catch (NumberFormatException ignored) { return null; }
+    }
+
+    private Double parseDouble(Object raw) {
+        if (raw == null) return null;
+        if (raw instanceof Number n) return n.doubleValue();
+        try { return Double.parseDouble(raw.toString().trim()); } catch (NumberFormatException ignored) { return null; }
+    }
+
+    private Boolean parseBoolean(Object raw) {
+        if (raw == null) return null;
+        if (raw instanceof Boolean b) return b;
+        return Boolean.parseBoolean(raw.toString().trim());
+    }
+
+    private Double firstDouble(Map<String, Object> body, String... keys) {
+        for (String key : keys) {
+            if (body.containsKey(key) && body.get(key) != null) {
+                Double v = parseDouble(body.get(key));
+                if (v != null) return v;
+            }
+        }
+        return null;
     }
 
     @DeleteMapping("/{id}")

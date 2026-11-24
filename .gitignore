@@ -26,5 +26,11 @@ Thumbs.db
 *.log
 *.zip
 
+# Configurações e credenciais locais (nunca versionar)
+.env
+.env.*
+!.env.example
+application-local.properties
+
 # Apresentação e prints (mantidos apenas localmente)
 prints-apresentacao/

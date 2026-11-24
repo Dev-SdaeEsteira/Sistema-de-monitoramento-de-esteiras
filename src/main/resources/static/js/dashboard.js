@@ -92,6 +92,11 @@ function atualizarCardsEsteiras(esteiras) {
 
     const tempoLabel = estado === 'STOPPED' ? 'Parada há:' : (estado === 'RUNNING' ? 'Operando há:' : 'Tempo:');
     const tempoVal = estado === 'STOPPED' ? (e.tempoParadoFormatado || '00:00:00') : (e.tempoFuncionandoFormatado || '00:00:00');
+    const isMpu = Boolean(e.sensorMpu6050);
+    const metricaLabel = isMpu ? 'Vibração / Giro' : 'LDR Atual';
+    const metricaVal = isMpu
+      ? `${e.sensorVibracaoRms != null ? Number(e.sensorVibracaoRms).toFixed(3) : '0.000'}g · ${e.sensorVelocidadeAngular != null ? Number(e.sensorVelocidadeAngular).toFixed(1) : '0.0'}°/s`
+      : (e.sensorValorLdr ?? '—');
 
     html += `
       <div class="esteira-card ${cardBorder}">
@@ -110,11 +115,11 @@ function atualizarCardsEsteiras(esteiras) {
             <span class="ec-item-val">${escapeHtml(e.sensorNome || '—')}</span>
           </div>
           <div class="ec-item">
-            <span class="ec-item-lbl">LDR Atual</span>
-            <span class="ec-item-val">${e.sensorValorLdr ?? '—'}</span>
+            <span class="ec-item-lbl">${metricaLabel}</span>
+            <span class="ec-item-val">${metricaVal}</span>
           </div>
           <div class="ec-item">
-            <span class="ec-item-lbl">Último Pulso</span>
+            <span class="ec-item-lbl">${isMpu ? 'Último Mov.' : 'Último Pulso'}</span>
             <span class="ec-item-val">${escapeHtml(e.ultimoPulsoTexto || '—')}</span>
           </div>
           <div class="ec-item">
@@ -153,17 +158,26 @@ function atualizarTabelaEsteiras(esteiras) {
     else if (e.estado === 'MAINTENANCE') chip = '<span class="chip chip-maint">🟡 Manutenção</span>';
     else if (e.estado === 'ERROR') chip = '<span class="chip chip-stop">⚠ Erro</span>';
 
-    const laserTxt = e.sensorLaser
-      ? '<span style="color:#059669;font-weight:600;">Detectado</span>'
-      : '<span style="color:#DC2626;font-weight:600;">Interrompido</span>';
+    const isMpu = Boolean(e.sensorMpu6050);
+    const telemetriaTxt = isMpu
+      ? `${e.sensorVibracaoRms != null ? Number(e.sensorVibracaoRms).toFixed(3) : '0.000'}g / ${e.sensorVelocidadeAngular != null ? Number(e.sensorVelocidadeAngular).toFixed(1) : '0.0'}°/s`
+      : (e.sensorValorLdr ?? '—');
+
+    const sinalTxt = isMpu
+      ? (e.sensorLaser
+          ? '<span style="color:#059669;font-weight:600;">MPU OK</span>'
+          : '<span style="color:#DC2626;font-weight:600;">Falha I2C</span>')
+      : (e.sensorLaser
+          ? '<span style="color:#059669;font-weight:600;">Detectado</span>'
+          : '<span style="color:#DC2626;font-weight:600;">Interrompido</span>');
 
     html += `
       <tr>
         <td style="font-weight:600;">${escapeHtml(e.nome)}</td>
         <td>${escapeHtml(e.sensorNome || '—')}</td>
         <td>${chip}</td>
-        <td style="text-align:right;font-weight:700;">${e.sensorValorLdr ?? '—'}</td>
-        <td>${laserTxt}</td>
+        <td style="text-align:right;font-weight:700;">${telemetriaTxt}</td>
+        <td>${sinalTxt}</td>
         <td>${escapeHtml(e.ultimoPulsoTexto || '—')}</td>
         <td>${escapeHtml(e.ultimaComunicacaoTexto || '—')}</td>
       </tr>
@@ -178,6 +192,9 @@ function atualizarAnimacaoPrincipal(esteiras) {
   const chip   = document.getElementById('mainBeltStatusChip');
   const sub    = document.getElementById('beltSubText');
   const beam   = document.getElementById('laserBeamStatus');
+  const title  = document.getElementById('beltCardTitle');
+  const hwPin  = document.getElementById('beltHwPin');
+  const modeTx = document.getElementById('beltModeText');
 
   if (!esteiras || esteiras.length === 0) {
     if (btrack) btrack.classList.add('halt');
@@ -186,12 +203,13 @@ function atualizarAnimacaoPrincipal(esteiras) {
       chip.textContent = 'Aguardando cadastro';
     }
     if (sub) sub.textContent = 'Nenhuma esteira cadastrada';
-    if (beam) beam.textContent = 'Laser: Aguardando sensor';
+    if (beam) beam.textContent = 'Sensor: Aguardando cadastro';
     return;
   }
 
   const algumRodando = esteiras.some(e => e.estado === 'RUNNING');
-  const algumComLaser = esteiras.some(e => e.sensorLaser);
+  const principal = esteiras[0];
+  const usaMpu = esteiras.some(e => e.sensorMpu6050);
 
   if (btrack) {
     if (algumRodando) btrack.classList.remove('halt');
@@ -209,12 +227,23 @@ function atualizarAnimacaoPrincipal(esteiras) {
   }
 
   if (sub) {
-    const e = esteiras[0];
-    sub.textContent = `${e.nome} (${e.estadoDescricao || e.estado})`;
+    sub.textContent = `${principal.nome} (${principal.estadoDescricao || principal.estado})`;
   }
 
-  if (beam) {
-    beam.textContent = algumComLaser ? 'Laser: Feixe Detectado' : 'Laser: Feixe Interrompido';
+  if (usaMpu) {
+    const eMpu = esteiras.find(e => e.sensorMpu6050) || principal;
+    const vib = eMpu.sensorVibracaoRms != null ? Number(eMpu.sensorVibracaoRms).toFixed(3) : '0.000';
+    const giro = eMpu.sensorVelocidadeAngular != null ? Number(eMpu.sensorVelocidadeAngular).toFixed(1) : '0.0';
+    if (title) title.textContent = 'Monitoramento Físico: MPU-6050 (Acelerômetro + Giroscópio)';
+    if (hwPin) hwPin.textContent = 'ESP32 I2C: GPIO 21 (SDA) / GPIO 22 (SCL)';
+    if (beam) beam.textContent = `MPU-6050: Vib ${vib}g | Giro ${giro}°/s`;
+    if (modeTx) modeTx.textContent = 'Modo: Vibração e Velocidade Angular';
+  } else {
+    const algumComLaser = esteiras.some(e => e.sensorLaser);
+    if (title) title.textContent = 'Monitoramento Físico: Laser + LDR';
+    if (hwPin) hwPin.textContent = 'ESP32 ADC: GPIO 34 (LDR)';
+    if (beam) beam.textContent = algumComLaser ? 'Laser: Feixe Detectado' : 'Laser: Feixe Interrompido';
+    if (modeTx) modeTx.textContent = 'Modo: Detecção de Feixe e Pulsos';
   }
 }
 
@@ -349,14 +378,30 @@ function desenharGraficoLdr() {
     return;
   }
 
-  const valores = ldrHistorico.map(d => d.valorLdr ?? 0);
+  const usaMpu = ldrHistorico.some(d => d.temDadosMpu6050);
+  const valores = usaMpu
+    ? ldrHistorico.map(d => Number(d.vibracaoRms ?? 0))
+    : ldrHistorico.map(d => Number(d.valorLdr ?? 0));
+
   const min = Math.min(...valores);
   const max = Math.max(...valores);
   const cur = valores[valores.length - 1];
 
-  setEl('ldrMin', min);
-  setEl('ldrMax', max);
-  setEl('ldrCur', cur);
+  if (usaMpu) {
+    setEl('chartCardTitle', 'Vibração MPU-6050 × Tempo');
+    setEl('lblMin', 'Vib Mín');
+    setEl('lblMax', 'Vib Máx');
+    setEl('ldrMin', `${min.toFixed(3)}g`);
+    setEl('ldrMax', `${max.toFixed(3)}g`);
+    setEl('ldrCur', `${cur.toFixed(3)}g`);
+  } else {
+    setEl('chartCardTitle', 'Gráfico LDR × Tempo');
+    setEl('lblMin', 'LDR Mín');
+    setEl('lblMax', 'LDR Máx');
+    setEl('ldrMin', min);
+    setEl('ldrMax', max);
+    setEl('ldrCur', cur);
+  }
 
   // Grade de fundo
   [0.25, 0.5, 0.75].forEach(y => {
@@ -368,8 +413,9 @@ function desenharGraficoLdr() {
     ctx.stroke();
   });
 
+  const tetoPadrao = usaMpu ? 1.5 : 4095;
   if (valores.length === 1) {
-    const y = h - (Math.min(4095, Math.max(0, valores[0])) / 4095) * (h - 20) - 10;
+    const y = h - (Math.min(tetoPadrao, Math.max(0, valores[0])) / tetoPadrao) * (h - 20) - 10;
     ctx.beginPath();
     ctx.strokeStyle = 'rgba(37,99,235,0.45)';
     ctx.lineWidth = 1.5;
@@ -384,10 +430,10 @@ function desenharGraficoLdr() {
     return;
   }
 
-  const range = (max - min) > 0 ? (max - min) : 4095;
+  const range = (max - min) > 0 ? (max - min) : tetoPadrao;
   const escalaMin = (max - min) > 0 ? min : 0;
 
-  // Curva de LDR
+  // Curva
   ctx.beginPath();
   valores.forEach((v, i) => {
     const x = (i / (valores.length - 1)) * w;

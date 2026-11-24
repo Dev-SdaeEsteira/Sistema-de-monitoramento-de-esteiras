@@ -132,15 +132,16 @@
         <!-- Card: Sensores Vinculados & Hardware -->
         <div class="card">
             <div class="card-head">
-                <div class="card-title">Sensor Vinculado (Laser + LDR)</div>
+                <div class="card-title"
+                     th:text="${sensoresVinculados != null and !#lists.isEmpty(sensoresVinculados) and sensoresVinculados[0].mpu6050} ? 'Sensor Vinculado (MPU-6050)' : 'Sensor Vinculado (Laser + LDR)'">Sensor Vinculado</div>
                 <span class="card-sub" th:text="${sensoresVinculados != null ? #lists.size(sensoresVinculados) : 0} + ' sensor(es)'">1 sensor</span>
             </div>
             <div class="card-body">
                 <div th:if="${sensoresVinculados != null and !#lists.isEmpty(sensoresVinculados)}"
                      th:with="s=${sensoresVinculados[0]}">
                     <div class="stat-item">
-                        <span class="stat-label">Modelo / Nome</span>
-                        <span class="stat-value" th:text="${s.modelo}">LDR-001</span>
+                        <span class="stat-label">Modelo / Tipo</span>
+                        <span class="stat-value" th:text="${s.modelo} + ' (' + ${s.tipo} + ')'">MPU-001</span>
                     </div>
                     <div class="stat-item">
                         <span class="stat-label">ID do Sensor</span>
@@ -153,20 +154,43 @@
                             <span th:unless="${s.conectado}" style="color:#DC2626;font-weight:700;">● Offline</span>
                         </span>
                     </div>
+                    <th:block th:if="${s.mpu6050}">
+                        <div class="stat-item">
+                            <span class="stat-label">Vibração RMS / Pico</span>
+                            <span class="stat-value" style="font-size:15px;color:#2563EB;"
+                                  th:text="${(s.vibracaoRms != null ? #numbers.formatDecimal(s.vibracaoRms, 1, 3) : '0.000') + ' g / ' + (s.vibracaoPico != null ? #numbers.formatDecimal(s.vibracaoPico, 1, 3) : '0.000') + ' g'}">0.000 g</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Velocidade Angular (Giro)</span>
+                            <span class="stat-value" style="color:#D97706;"
+                                  th:text="${s.velocidadeAngular != null ? #numbers.formatDecimal(s.velocidadeAngular, 1, 1) + ' °/s' : '0.0 °/s'}">0.0 °/s</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Aceleração (X, Y, Z)</span>
+                            <span class="stat-value" style="font-size:12px;"
+                                  th:text="${s.aceleracaoX != null} ? (${#numbers.formatDecimal(s.aceleracaoX, 1, 2)} + ', ' + ${#numbers.formatDecimal(s.aceleracaoY, 1, 2)} + ', ' + ${#numbers.formatDecimal(s.aceleracaoZ, 1, 2)} + ' g') : '—'">—</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Comunicação I2C (MPU)</span>
+                            <span class="stat-value" th:text="${s.laserDetectado} ? 'OK (Respondendo)' : 'Falha / Aguardando'">OK</span>
+                        </div>
+                    </th:block>
+                    <th:block th:unless="${s.mpu6050}">
+                        <div class="stat-item">
+                            <span class="stat-label">Valor LDR Atual</span>
+                            <span class="stat-value" style="font-size:16px;color:#2563EB;" th:text="${s.ultimoValorLdr != null ? s.ultimoValorLdr : 0}">1820</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Laser Detectado</span>
+                            <span class="stat-value" th:text="${s.laserDetectado} ? 'Sim (Feixe Presente)' : 'Não (Interrompido)'">Sim</span>
+                        </div>
+                    </th:block>
                     <div class="stat-item">
-                        <span class="stat-label">Valor LDR Atual</span>
-                        <span class="stat-value" style="font-size:16px;color:#2563EB;" th:text="${s.ultimoValorLdr != null ? s.ultimoValorLdr : 0}">1820</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Laser Detectado</span>
-                        <span class="stat-value" th:text="${s.laserDetectado} ? 'Sim (Feixe Presente)' : 'Não (Interrompido)'">Sim</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-label">Total de Pulsos</span>
+                        <span class="stat-label">Total de Pulsos / Movimentos</span>
                         <span class="stat-value" th:text="${s.quantidadePulsos}">0</span>
                     </div>
                     <div class="stat-item" sec:authorize="hasAnyRole('ENGENHEIRO', 'ADMINISTRADOR')">
-                        <span class="stat-label">API Key do ESP32</span>
+                        <span class="stat-label">API Key do Sensor</span>
                         <div class="api-key-box">
                             <span id="apiKeyText" th:text="${s.apiKey}">key-uuid</span>
                             <button type="button" class="btn btn-ghost" style="padding:2px 8px;font-size:11px;" onclick="copiarApiKey()">Copiar</button>
@@ -184,7 +208,7 @@
     <!-- Gráfico Real de Leituras (Req. 21, 23) -->
     <div class="card">
         <div class="card-head">
-            <div class="card-title">Gráfico Histórico de Leituras LDR</div>
+            <div class="card-title" id="chartTituloEsteira">Gráfico Histórico de Telemetria</div>
             <span class="card-sub">Telemetria Real do Sensor</span>
         </div>
         <div class="card-body">
@@ -249,44 +273,87 @@
             const res = await fetch(`/api/dashboard/grafico-ldr?esteiraId=${esteiraId}&periodo=15m`, { credentials: 'same-origin' });
             if (!res.ok) return;
             const dados = await res.json();
-            
+
             const labels = dados.map(d => d.hora);
-            const valores = dados.map(d => d.valorLdr);
+            const usaMpu = dados.some(d => d.temDadosMpu6050);
 
             const ctx = document.getElementById('leituraChart')?.getContext('2d');
             if (ctx) {
-                new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: labels.length > 0 ? labels : ['Sem dados'],
-                        datasets: [{
-                            label: 'LDR (0-4095)',
-                            data: valores.length > 0 ? valores : [0],
-                            borderColor: '#2563EB',
-                            backgroundColor: 'rgba(37, 99, 235, 0.08)',
-                            tension: 0.2,
-                            fill: true,
-                            pointRadius: 3
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { labels: { font: { family: 'IBM Plex Mono' } } }
+                if (usaMpu) {
+                    const tit = document.getElementById('chartTituloEsteira');
+                    if (tit) tit.textContent = 'Gráfico Histórico — Vibração (g) e Giroscópio (°/s)';
+                    new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: labels.length > 0 ? labels : ['Sem dados'],
+                            datasets: [
+                                {
+                                    label: 'Vibração RMS (g)',
+                                    data: dados.map(d => d.vibracaoRms ?? 0),
+                                    borderColor: '#2563EB',
+                                    backgroundColor: 'rgba(37, 99, 235, 0.08)',
+                                    tension: 0.25,
+                                    fill: true,
+                                    pointRadius: 3,
+                                    yAxisID: 'yVib'
+                                },
+                                {
+                                    label: 'Giroscópio (°/s)',
+                                    data: dados.map(d => d.velocidadeAngular ?? 0),
+                                    borderColor: '#D97706',
+                                    backgroundColor: 'rgba(217, 119, 6, 0.08)',
+                                    tension: 0.25,
+                                    fill: false,
+                                    pointRadius: 2,
+                                    yAxisID: 'yGyro'
+                                }
+                            ]
                         },
-                        scales: {
-                            y: {
-                                min: 0,
-                                max: 4095,
-                                ticks: { font: { family: 'IBM Plex Mono' } }
-                            },
-                            x: {
-                                ticks: { font: { family: 'IBM Plex Mono' } }
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { labels: { font: { family: 'IBM Plex Mono' } } } },
+                            scales: {
+                                yVib:  { type: 'linear', position: 'left', min: 0, title: { display: true, text: 'g' } },
+                                yGyro: { type: 'linear', position: 'right', min: 0, grid: { drawOnChartArea: false }, title: { display: true, text: '°/s' } }
                             }
                         }
-                    }
-                });
+                    });
+                } else {
+                    const valores = dados.map(d => d.valorLdr);
+                    new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: labels.length > 0 ? labels : ['Sem dados'],
+                            datasets: [{
+                                label: 'LDR (0-4095)',
+                                data: valores.length > 0 ? valores : [0],
+                                borderColor: '#2563EB',
+                                backgroundColor: 'rgba(37, 99, 235, 0.08)',
+                                tension: 0.2,
+                                fill: true,
+                                pointRadius: 3
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { labels: { font: { family: 'IBM Plex Mono' } } }
+                            },
+                            scales: {
+                                y: {
+                                    min: 0,
+                                    max: 4095,
+                                    ticks: { font: { family: 'IBM Plex Mono' } }
+                                },
+                                x: {
+                                    ticks: { font: { family: 'IBM Plex Mono' } }
+                                }
+                            }
+                        }
+                    });
+                }
             }
         } catch (e) {
             console.warn('Erro ao carregar gráfico:', e);

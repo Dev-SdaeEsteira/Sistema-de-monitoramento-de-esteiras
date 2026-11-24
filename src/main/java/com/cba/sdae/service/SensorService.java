@@ -164,11 +164,24 @@ public class SensorService {
     /**
      * Processa a telemetria enviada pelo ESP32 (ou simulador de teste)
      * e orquestra a lógica de detecção de movimento/parada, eventos e alertas.
+     * Sobrecarga mantida para compatibilidade com sensores Laser + LDR e testes existentes.
      */
     @Transactional
     public Map<String, Object> processarTelemetria(Long sensorId, Integer valorLdr,
                                                    Boolean laserDetectado, Boolean pulsoDetectado,
                                                    LocalDateTime timestamp, Double valorLegado) {
+        return processarTelemetria(sensorId, valorLdr, laserDetectado, pulsoDetectado, timestamp, valorLegado, null);
+    }
+
+    /**
+     * Processa telemetria completa de sensores MPU-6050 (acelerômetro + giroscópio)
+     * ou ópticos (Laser + LDR), persistindo os 6 eixos e vibração quando enviados.
+     */
+    @Transactional
+    public Map<String, Object> processarTelemetria(Long sensorId, Integer valorLdr,
+                                                   Boolean laserDetectado, Boolean pulsoDetectado,
+                                                   LocalDateTime timestamp, Double valorLegado,
+                                                   Mpu6050Telemetria mpu) {
         Sensor sensor = sensorRepository.findById(sensorId)
                 .orElseThrow(() -> new IllegalArgumentException("Sensor não encontrado: " + sensorId));
 
@@ -180,25 +193,61 @@ public class SensorService {
         LocalDateTime agora = timestamp != null ? timestamp : LocalDateTime.now();
         boolean teveContatoAntes = sensor.getUltimoContato() != null;
         boolean laserAnterior = Boolean.TRUE.equals(sensor.getLaserDetectado());
+        boolean temMpu = mpu != null && mpu.temDados();
+        boolean modoMpu = temMpu || sensor.isMpu6050();
 
-        // 1. Determina valor LDR e se laser foi detectado
-        int ldr = valorLdr != null ? valorLdr : (valorLegado != null ? (int) (valorLegado * 40.95) : (sensor.getUltimoValorLdr() != null ? sensor.getUltimoValorLdr() : 0));
-        boolean laser = laserDetectado != null ? laserDetectado : (ldr >= (esteira.getLdrThreshold() != null ? esteira.getLdrThreshold() : 1800));
-        boolean pulso = pulsoDetectado != null && pulsoDetectado;
-
-        // Porcentagem de risco calculada:
-        // - Payload legado ("valor"): usa porcentagem direta (0-100)
-        // - Telemetria óptica (ESP32): laser presente + pulso = operação normal (risco baixo);
-        //   feixe interrompido/perdido eleva o risco para ATENCAO/CRITICO.
-        double pct;
-        if (valorLegado != null) {
-            pct = Math.clamp(valorLegado, 0.0, 100.0);
-        } else if (!laser) {
-            pct = pulso ? 50.0 : 85.0;
-        } else {
-            pct = pulso ? 10.0 : 25.0;
+        // 1. Determina estado de saúde do sensor, movimento/pulso e índice de risco (%)
+        boolean sensorOkMpu = true;
+        if (temMpu && mpu.sensorOk() != null) {
+            sensorOkMpu = mpu.sensorOk();
+        } else if (modoMpu && laserDetectado != null) {
+            sensorOkMpu = laserDetectado;
         }
 
+        boolean pulso;
+        if (pulsoDetectado != null) {
+            pulso = pulsoDetectado;
+        } else if (temMpu && sensorOkMpu) {
+            double vibRms = mpu.vibracaoRmsG() != null ? mpu.vibracaoRmsG() : 0.0;
+            double vibPico = mpu.vibracaoPicoG() != null ? mpu.vibracaoPicoG() : 0.0;
+            double gyro = mpu.gyroPicoDps() != null ? mpu.gyroPicoDps() : 0.0;
+            pulso = (vibRms >= 0.06 || vibPico >= 0.08 || gyro >= 8.0);
+        } else {
+            pulso = false;
+        }
+
+        double pct;
+        int ldr;
+        boolean laser;
+
+        if (modoMpu) {
+            if (!sensorOkMpu) {
+                pct = valorLegado != null ? Math.clamp(valorLegado, 70.0, 100.0) : 95.0;
+                pulso = false;
+            } else if (valorLegado != null) {
+                pct = Math.clamp(valorLegado, 0.0, 100.0);
+            } else if (temMpu) {
+                pct = calcularIndiceRiscoMpu(mpu);
+            } else {
+                pct = pulso ? 15.0 : 5.0;
+            }
+            ldr = valorLdr != null ? valorLdr : (int) Math.round(pct * 40.95);
+            laser = sensorOkMpu;
+        } else {
+            // Fluxo original Laser + LDR preservado integralmente
+            ldr = valorLdr != null ? valorLdr : (valorLegado != null ? (int) (valorLegado * 40.95) : (sensor.getUltimoValorLdr() != null ? sensor.getUltimoValorLdr() : 0));
+            laser = laserDetectado != null ? laserDetectado : (ldr >= (esteira.getLdrThreshold() != null ? esteira.getLdrThreshold() : 1800));
+
+            if (valorLegado != null) {
+                pct = Math.clamp(valorLegado, 0.0, 100.0);
+            } else if (!laser) {
+                pct = pulso ? 50.0 : 85.0;
+            } else {
+                pct = pulso ? 10.0 : 25.0;
+            }
+        }
+
+        NivelRisco nivelRiscoAnterior = sensor.getNivelRisco();
         NivelRisco nivelRisco = calcularNivel(pct);
 
         // 2. Atualiza dados do sensor
@@ -208,6 +257,18 @@ public class SensorService {
         sensor.setLaserDetectado(laser);
         sensor.setLeituraAtual(pct);
         sensor.setNivelRisco(nivelRisco);
+
+        if (temMpu) {
+            if (mpu.ax() != null)            sensor.setAceleracaoX(mpu.ax());
+            if (mpu.ay() != null)            sensor.setAceleracaoY(mpu.ay());
+            if (mpu.az() != null)            sensor.setAceleracaoZ(mpu.az());
+            if (mpu.gx() != null)            sensor.setGiroscopioX(mpu.gx());
+            if (mpu.gy() != null)            sensor.setGiroscopioY(mpu.gy());
+            if (mpu.gz() != null)            sensor.setGiroscopioZ(mpu.gz());
+            if (mpu.vibracaoRmsG() != null)  sensor.setVibracaoRms(mpu.vibracaoRmsG());
+            if (mpu.vibracaoPicoG() != null) sensor.setVibracaoPico(mpu.vibracaoPicoG());
+            if (mpu.gyroPicoDps() != null)   sensor.setVelocidadeAngular(mpu.gyroPicoDps());
+        }
 
         if (pulso) {
             sensor.setUltimoPulso(agora);
@@ -238,28 +299,40 @@ public class SensorService {
                 } else {
                     esteira.setEstado(EstadoEsteira.STOPPED);
                     esteira.setTempoParadaInicio(agora);
-                    alertaRepository.save(new Alerta("Comunicação restabelecida com a esteira '" + esteira.getNome() + "'. Esteira aguardando pulsos.",
+                    alertaRepository.save(new Alerta("Comunicação restabelecida com a esteira '" + esteira.getNome() + "'. Esteira aguardando movimento.",
                             agora, NivelRisco.NORMAL, esteira));
                 }
             } else if (pulso) {
-                // Pulso detectado
+                // Movimento / Pulso detectado
                 if (estadoAnterior != EstadoEsteira.RUNNING) {
-                    // Transição para RUNNING!
                     esteira.setEstado(EstadoEsteira.RUNNING);
                     esteira.setTempoFuncionamentoInicio(agora);
                     esteira.setTempoParadaInicio(null);
 
+                    String descInicio = modoMpu
+                            ? "Movimento detectado pelo sensor MPU-6050 " + sensor.getModelo()
+                            : "Pulsos válidos detectados pelo sensor " + sensor.getModelo();
                     eventoService.registrarTransicao(esteira, TipoEventoEsteira.START, estadoAnterior,
-                            EstadoEsteira.RUNNING, "Pulsos válidos detectados pelo sensor " + sensor.getModelo());
+                            EstadoEsteira.RUNNING, descInicio);
 
-                    // Alerta de retorno (Req. 15)
                     alertaRepository.save(new Alerta("A esteira '" + esteira.getNome() + "' voltou a funcionar.",
                             agora, NivelRisco.NORMAL, esteira));
                 }
             }
 
-            // Registra eventos de interrupção/retorno do feixe de laser
-            if (valorLegado == null) {
+            // Eventos específicos do tipo de sensor
+            if (modoMpu) {
+                if (!sensorOkMpu && (laserAnterior || !teveContatoAntes)) {
+                    eventoService.registrarTransicao(esteira, TipoEventoEsteira.MPU_FAULT, estadoAnterior,
+                            esteira.getEstado(), "Falha de comunicação I2C no sensor MPU-6050 " + sensor.getModelo());
+                } else if (sensorOkMpu && nivelRisco != NivelRisco.NORMAL && nivelRiscoAnterior == NivelRisco.NORMAL) {
+                    double vib = sensor.getVibracaoRms() != null ? sensor.getVibracaoRms() : 0.0;
+                    double giro = sensor.getVelocidadeAngular() != null ? sensor.getVelocidadeAngular() : 0.0;
+                    eventoService.registrarTransicao(esteira, TipoEventoEsteira.HIGH_VIBRATION, estadoAnterior,
+                            esteira.getEstado(), String.format("Vibração/giro elevado no MPU-6050 %s (VibRMS=%.3fg, Giro=%.1f°/s)",
+                                    sensor.getModelo(), vib, giro));
+                }
+            } else if (valorLegado == null) {
                 if (!laser && (laserAnterior || !teveContatoAntes)) {
                     eventoService.registrarTransicao(esteira, TipoEventoEsteira.LASER_LOST, estadoAnterior,
                             esteira.getEstado(), "Feixe de laser interrompido no sensor " + sensor.getModelo() + " (LDR=" + ldr + ")");
@@ -274,6 +347,9 @@ public class SensorService {
         LeituraHistorico historico = new LeituraHistorico(
                 sensor, esteira, ldr, laser, pulso, esteira.getEstado(), pct, nivelRisco, agora
         );
+        if (temMpu) {
+            historico.aplicarTelemetriaMpu(mpu);
+        }
         leituraHistoricoRepository.save(historico);
 
         // Salva sensor e esteira
@@ -283,22 +359,65 @@ public class SensorService {
         // 5. Dispara alerta inteligente quando a telemetria entra em ATENCAO ou CRITICO
         if (estadoAnterior != EstadoEsteira.MAINTENANCE) {
             if (nivelRisco != NivelRisco.NORMAL) {
-                verificarEDispararAlerta(sensor, nivelRisco, pct, !laser && valorLegado == null);
+                if (modoMpu) {
+                    verificarEDispararAlertaMpu(sensor, nivelRisco, pct, !sensorOkMpu);
+                } else {
+                    verificarEDispararAlerta(sensor, nivelRisco, pct, !laser && valorLegado == null);
+                }
             } else {
                 ultimoNivelPorSensor.put(sensor.getId(), NivelRisco.NORMAL);
             }
         }
 
-        // 6. Retorna mapa com formato da resposta da API (Req. 10)
-        return Map.of(
-                "success", true,
-                "sensorId", sensor.getId(),
-                "valorLdr", ldr,
-                "laserDetectado", laser,
-                "pulsoDetectado", pulso,
-                "estadoEsteira", esteira.getEstado().name(),
-                "nivelRisco", nivelRisco.name()
-        );
+        // 6. Retorna mapa com formato da resposta da API (compatível + campos MPU-6050)
+        Map<String, Object> resposta = new java.util.LinkedHashMap<>();
+        resposta.put("success", true);
+        resposta.put("sensorId", sensor.getId());
+        resposta.put("tipo", sensor.getTipo());
+        resposta.put("valor", pct);
+        resposta.put("valorLdr", ldr);
+        resposta.put("laserDetectado", laser);
+        resposta.put("pulsoDetectado", pulso);
+        resposta.put("estadoEsteira", esteira.getEstado().name());
+        resposta.put("nivelRisco", nivelRisco.name());
+        if (temMpu || sensor.isMpu6050()) {
+            resposta.put("sensorOk", sensorOkMpu);
+            resposta.put("vibracaoRmsG", sensor.getVibracaoRms());
+            resposta.put("vibracaoPicoG", sensor.getVibracaoPico());
+            resposta.put("gyroPicoDps", sensor.getVelocidadeAngular());
+            resposta.put("ax", sensor.getAceleracaoX());
+            resposta.put("ay", sensor.getAceleracaoY());
+            resposta.put("az", sensor.getAceleracaoZ());
+            resposta.put("gx", sensor.getGiroscopioX());
+            resposta.put("gy", sensor.getGiroscopioY());
+            resposta.put("gz", sensor.getGiroscopioZ());
+        }
+        return resposta;
+    }
+
+    private double calcularIndiceRiscoMpu(Mpu6050Telemetria mpu) {
+        double vibRms = mpu.vibracaoRmsG() != null ? mpu.vibracaoRmsG() : 0.0;
+        double vibPico = mpu.vibracaoPicoG() != null ? mpu.vibracaoPicoG() : 0.0;
+        double vibEfetiva = Math.max(vibRms, vibPico * 0.65);
+        double gyro = mpu.gyroPicoDps() != null ? mpu.gyroPicoDps() : 0.0;
+
+        double pctAcel = mapearIndiceMpu(vibEfetiva, 0.06, 0.45, 0.90, 1.50);
+        double pctGiro = mapearIndiceMpu(gyro, 8.0, 60.0, 130.0, 220.0);
+        return Math.round(Math.max(pctAcel, pctGiro) * 10.0) / 10.0;
+    }
+
+    private double mapearIndiceMpu(double val, double limMov, double limAtencao, double limCritico, double limMax) {
+        if (val <= 0.0)       return 0.0;
+        if (val < limMov)     return interpolar(val, 0.0,        limMov,     0.0,  9.5);
+        if (val < limAtencao) return interpolar(val, limMov,     limAtencao, 10.0, 34.0);
+        if (val < limCritico) return interpolar(val, limAtencao, limCritico, 35.0, 69.0);
+        return interpolar(val, limCritico, limMax, 70.0, 100.0);
+    }
+
+    private double interpolar(double x, double xMin, double xMax, double yMin, double yMax) {
+        if (x <= xMin) return yMin;
+        if (x >= xMax) return yMax;
+        return yMin + ((x - xMin) / (xMax - xMin)) * (yMax - yMin);
     }
 
     // Calcula o nível de risco pela leitura (%)
@@ -306,6 +425,38 @@ public class SensorService {
         if (leitura >= 70) return NivelRisco.CRITICO;
         if (leitura >= 35) return NivelRisco.ATENCAO;
         return NivelRisco.NORMAL;
+    }
+
+    private void verificarEDispararAlertaMpu(Sensor sensor, NivelRisco nivel, double leitura, boolean falhaI2c) {
+        if (sensor.getEsteira() == null || sensor.getId() == null) return;
+
+        Long sId = sensor.getId();
+        NivelRisco nivelAnterior = ultimoNivelPorSensor.get(sId);
+        LocalDateTime ultimoAlerta = ultimoAlertaPorSensor.get(sId);
+        LocalDateTime agora = LocalDateTime.now();
+
+        boolean mudouNivel = (nivelAnterior == null || nivelAnterior != nivel);
+        boolean tempoExpirou = (ultimoAlerta == null || Duration.between(ultimoAlerta, agora).toMinutes() >= 15);
+
+        if (mudouNivel || tempoExpirou) {
+            double vib = sensor.getVibracaoRms() != null ? sensor.getVibracaoRms() : 0.0;
+            double giro = sensor.getVelocidadeAngular() != null ? sensor.getVelocidadeAngular() : 0.0;
+            String mensagem;
+            if (falhaI2c) {
+                mensagem = String.format("ALERTA CRÍTICO: Falha de comunicação I2C no sensor MPU-6050 %s da esteira '%s'.",
+                        sensor.getModelo(), sensor.getEsteira().getNome());
+            } else if (nivel == NivelRisco.CRITICO) {
+                mensagem = String.format("ALERTA CRÍTICO: Vibração/impacto severo no MPU-6050 %s da esteira '%s' (VibRMS: %.3fg | Giro: %.1f°/s | Índice: %.1f%%).",
+                        sensor.getModelo(), sensor.getEsteira().getNome(), vib, giro, leitura);
+            } else {
+                mensagem = String.format("ATENÇÃO: Vibração elevada no MPU-6050 %s da esteira '%s' (VibRMS: %.3fg | Giro: %.1f°/s | Índice: %.1f%%).",
+                        sensor.getModelo(), sensor.getEsteira().getNome(), vib, giro, leitura);
+            }
+
+            alertaRepository.save(new Alerta(mensagem, agora, nivel, sensor.getEsteira()));
+            ultimoAlertaPorSensor.put(sId, agora);
+            ultimoNivelPorSensor.put(sId, nivel);
+        }
     }
 
     // Gera alerta inteligente (apenas em transições de estado ou a cada 15 min de insistência)

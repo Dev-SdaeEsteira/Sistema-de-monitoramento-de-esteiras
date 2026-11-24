@@ -63,7 +63,7 @@
     <div class="page-header">
         <div>
             <div class="page-title">Cadastrar Novo Sensor</div>
-            <div class="page-sub">Vincule um sensor óptico (Laser + LDR) a uma esteira existente</div>
+            <div class="page-sub">Vincule um sensor MPU-6050 (Acelerômetro + Giroscópio) ou Laser + LDR a uma esteira</div>
         </div>
         <a href="/sensores" class="btn btn-ghost">← Voltar</a>
     </div>
@@ -75,7 +75,7 @@
         <div class="card-head">
             <div>
                 <div class="card-title">Dados do Sensor</div>
-                <div class="card-sub">Modelo e esteira vinculada</div>
+                <div class="card-sub">Modelo, tecnologia e esteira vinculada</div>
         </div>
         </div>
 
@@ -87,12 +87,20 @@
                     <div class="form-group">
                         <label class="form-label" for="modelo">Modelo do Sensor <span>*</span></label>
                         <input type="text" class="form-input" id="modelo" th:field="*{modelo}"
-                               placeholder="Ex.: ESP32-Laser-LDR-01" required>
+                               placeholder="Ex.: ESP32-MPU6050-01" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="tipo">Tipo de Sensor <span>*</span></label>
+                        <select class="form-select" id="tipo" th:field="*{tipo}" required>
+                            <option value="MPU-6050 (Acelerômetro + Giroscópio)">MPU-6050 (Acelerômetro + Giroscópio)</option>
+                            <option value="Laser + LDR">Laser + LDR (Óptico)</option>
+                        </select>
                     </div>
 
                     <input type="hidden" id="leituraAtual" th:field="*{leituraAtual}" value="0.0">
 
-                    <div class="form-group">
+                    <div class="form-group full">
                         <label class="form-label" for="esteiraId">Esteira Vinculada <span>*</span></label>
                         <select class="form-select" id="esteiraId" name="esteiraId" required>
                             <option value="">Selecione a esteira...</option>

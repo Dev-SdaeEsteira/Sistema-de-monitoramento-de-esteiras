@@ -9,6 +9,8 @@ public enum TipoEventoEsteira {
     LASER_DETECTED("Feixe de Laser Detectado"),
     MAINTENANCE_START("Início de Manutenção"),
     MAINTENANCE_END("Fim de Manutenção"),
+    MPU_FAULT("Falha de Comunicação MPU-6050 (I2C)"),
+    HIGH_VIBRATION("Vibração Elevada (MPU-6050)"),
     ERROR("Falha / Erro");
 
     private final String descricao;

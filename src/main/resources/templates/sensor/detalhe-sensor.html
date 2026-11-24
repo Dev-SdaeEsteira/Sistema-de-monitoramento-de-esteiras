@@ -75,7 +75,7 @@
             </div>
         </div>
 
-        <!-- Card 2: Nível de Risco -->
+        <!-- Card 2: Nível de Risco & Telemetria -->
         <div class="card">
             <div class="card-head">
                 <div class="card-title">Nível de Risco</div>
@@ -86,14 +86,32 @@
                     <strong>Índice de Risco Atual</strong>
                     <div class="status-value" th:text="${sensor.leituraAtual != null} ? ${#numbers.formatDecimal(sensor.leituraAtual, 0, 1)} + '%' : '0.0%'">0.0%</div>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-label">LDR Atual (ADC)</div>
-                    <div class="stat-value" th:text="${sensor.ultimoValorLdr != null ? sensor.ultimoValorLdr : 0}">0</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-label">Feixe Laser</div>
-                    <div class="stat-value" th:text="${sensor.laserDetectado != null and sensor.laserDetectado} ? 'Detectado' : 'Interrompido'">Detectado</div>
-                </div>
+                <th:block th:if="${sensor.mpu6050}">
+                    <div class="stat-item">
+                        <div class="stat-label">Vibração RMS (Acel.)</div>
+                        <div class="stat-value" th:text="${sensor.vibracaoRms != null} ? ${#numbers.formatDecimal(sensor.vibracaoRms, 1, 3)} + ' g' : '0.000 g'">0.000 g</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Giroscópio (Pico)</div>
+                        <div class="stat-value" th:text="${sensor.velocidadeAngular != null} ? ${#numbers.formatDecimal(sensor.velocidadeAngular, 1, 1)} + ' °/s' : '0.0 °/s'">0.0 °/s</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Comunicação I2C</div>
+                        <div class="stat-value"
+                             th:style="${sensor.laserDetectado != null and sensor.laserDetectado} ? 'color:#059669;' : 'color:#DC2626;'"
+                             th:text="${sensor.laserDetectado != null and sensor.laserDetectado} ? 'MPU-6050 OK' : 'Falha / Aguardando'">MPU-6050 OK</div>
+                    </div>
+                </th:block>
+                <th:block th:unless="${sensor.mpu6050}">
+                    <div class="stat-item">
+                        <div class="stat-label">LDR Atual (ADC)</div>
+                        <div class="stat-value" th:text="${sensor.ultimoValorLdr != null ? sensor.ultimoValorLdr : 0}">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Feixe Laser</div>
+                        <div class="stat-value" th:text="${sensor.laserDetectado != null and sensor.laserDetectado} ? 'Detectado' : 'Interrompido'">Detectado</div>
+                    </div>
+                </th:block>
             </div>
         </div>
 
@@ -117,8 +135,67 @@
                     <div class="stat-value" th:text="${sensor.ultimaLeituraTexto}">—</div>
                 </div>
                 <div class="stat-item">
-                    <div class="stat-label">Pulsos Acumulados</div>
+                    <div class="stat-label" th:text="${sensor.mpu6050} ? 'Movimentos / Pulsos' : 'Pulsos Acumulados'">Pulsos Acumulados</div>
                     <div class="stat-value" th:text="${sensor.quantidadePulsos != null ? sensor.quantidadePulsos : 0}">0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 6 Eixos do MPU-6050 (exibido apenas para sensores MPU-6050) -->
+    <div th:if="${sensor.mpu6050}" class="card full-width">
+        <div class="card-head">
+            <div class="card-title">Telemetria 6 Eixos — MPU-6050 (Acelerômetro + Giroscópio)</div>
+            <span style="font-family:var(--font-mono);font-size:11px;color:#4A5568;">Barramento I2C · ±2g / ±250 °/s</span>
+        </div>
+        <div class="card-body">
+            <div class="grid-3">
+                <div class="status-box" style="margin-bottom:0;">
+                    <strong>Acelerômetro (Eixos X / Y / Z em g)</strong>
+                    <div class="stat-item">
+                        <div class="stat-label">Eixo X (aX)</div>
+                        <div class="stat-value" th:text="${sensor.aceleracaoX != null} ? ${#numbers.formatDecimal(sensor.aceleracaoX, 1, 2)} + ' g' : '—'">—</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Eixo Y (aY)</div>
+                        <div class="stat-value" th:text="${sensor.aceleracaoY != null} ? ${#numbers.formatDecimal(sensor.aceleracaoY, 1, 2)} + ' g' : '—'">—</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Eixo Z (aZ)</div>
+                        <div class="stat-value" th:text="${sensor.aceleracaoZ != null} ? ${#numbers.formatDecimal(sensor.aceleracaoZ, 1, 2)} + ' g' : '—'">—</div>
+                    </div>
+                </div>
+
+                <div class="status-box" style="margin-bottom:0;">
+                    <strong>Giroscópio (Eixos X / Y / Z em °/s)</strong>
+                    <div class="stat-item">
+                        <div class="stat-label">Eixo X (gX)</div>
+                        <div class="stat-value" th:text="${sensor.giroscopioX != null} ? ${#numbers.formatDecimal(sensor.giroscopioX, 1, 1)} + ' °/s' : '—'">—</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Eixo Y (gY)</div>
+                        <div class="stat-value" th:text="${sensor.giroscopioY != null} ? ${#numbers.formatDecimal(sensor.giroscopioY, 1, 1)} + ' °/s' : '—'">—</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Eixo Z (gZ)</div>
+                        <div class="stat-value" th:text="${sensor.giroscopioZ != null} ? ${#numbers.formatDecimal(sensor.giroscopioZ, 1, 1)} + ' °/s' : '—'">—</div>
+                    </div>
+                </div>
+
+                <div class="status-box" style="margin-bottom:0;">
+                    <strong>Resumo de Movimento da Esteira</strong>
+                    <div class="stat-item">
+                        <div class="stat-label">Vibração RMS</div>
+                        <div class="stat-value" style="color:#2563EB;" th:text="${sensor.vibracaoRms != null} ? ${#numbers.formatDecimal(sensor.vibracaoRms, 1, 3)} + ' g' : '—'">—</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Pico de Vibração</div>
+                        <div class="stat-value" th:text="${sensor.vibracaoPico != null} ? ${#numbers.formatDecimal(sensor.vibracaoPico, 1, 3)} + ' g' : '—'">—</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Pico Giroscópio</div>
+                        <div class="stat-value" style="color:#D97706;" th:text="${sensor.velocidadeAngular != null} ? ${#numbers.formatDecimal(sensor.velocidadeAngular, 1, 1)} + ' °/s' : '—'">—</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -127,14 +204,17 @@
     <!-- Gráfico de Histórico -->
     <div class="card full-width">
         <div class="card-head">
-            <div class="card-title">Histórico de Leituras (LDR)</div>
+            <div class="card-title" th:text="${sensor.mpu6050} ? 'Histórico de Movimento (MPU-6050)' : 'Histórico de Leituras (LDR)'">Histórico de Leituras</div>
             <span style="font-family:var(--font-mono);font-size:11px;color:#4A5568;">Últimas 30 leituras</span>
         </div>
         <div class="card-body">
             <p th:if="${#lists.isEmpty(historico)}" style="text-align:center;color:#4A5568;margin-bottom:20px;">
                 Ainda não há leituras gravadas para este sensor.
             </p>
-            <p th:unless="${#lists.isEmpty(historico)}" style="text-align:center;color:#4A5568;margin-bottom:20px;">
+            <p th:if="${!#lists.isEmpty(historico) and sensor.mpu6050}" style="text-align:center;color:#4A5568;margin-bottom:20px;">
+                Vibração RMS (g) e Velocidade Angular (°/s) persistidas no banco (mais antigas → mais recentes).
+            </p>
+            <p th:if="${!#lists.isEmpty(historico) and !sensor.mpu6050}" style="text-align:center;color:#4A5568;margin-bottom:20px;">
                 Leituras LDR (ADC 0–4095) persistidas no banco (mais antigas → mais recentes).
             </p>
             <div class="chart-container">
@@ -150,6 +230,7 @@
     (()=>{const d=new Date();const el=document.getElementById('fdate');if(el)el.textContent=d.toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});})();
 
     const historico = /*[[${historico}]]*/ [];
+    const isMpu6050 = /*[[${sensor.mpu6050}]]*/ false;
     const ctx = document.getElementById('historicoChart')?.getContext('2d');
     if (ctx && typeof Chart !== 'undefined') {
         const pontos = Array.isArray(historico) ? historico : [];
@@ -158,38 +239,94 @@
             const d = new Date(h.dataHora);
             return isNaN(d) ? String(h.dataHora) : d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
         });
-        const valores = pontos.map(h => Number(h && h.valorLdr != null ? h.valorLdr : (h && h.valor != null ? h.valor : 0)));
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels.length ? labels : ['—'],
-                datasets: [{
-                    label: 'Leitura LDR (ADC)',
-                    data: valores.length ? valores : [0],
-                    borderColor: '#2563EB',
-                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
-                    tension: 0.35,
-                    fill: true,
-                    pointRadius: 4,
-                    pointHoverRadius: 6
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        labels: { font: { family: 'IBM Plex Mono, monospace' } }
-                    }
+
+        if (isMpu6050) {
+            const vibRms = pontos.map(h => Number(h && h.vibracaoRms != null ? h.vibracaoRms : 0));
+            const gyro   = pontos.map(h => Number(h && h.velocidadeAngular != null ? h.velocidadeAngular : 0));
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels.length ? labels : ['—'],
+                    datasets: [
+                        {
+                            label: 'Vibração RMS (g)',
+                            data: vibRms.length ? vibRms : [0],
+                            borderColor: '#2563EB',
+                            backgroundColor: 'rgba(37, 99, 235, 0.12)',
+                            tension: 0.35,
+                            fill: true,
+                            pointRadius: 4,
+                            yAxisID: 'yVib'
+                        },
+                        {
+                            label: 'Giroscópio (°/s)',
+                            data: gyro.length ? gyro : [0],
+                            borderColor: '#D97706',
+                            backgroundColor: 'rgba(217, 119, 6, 0.08)',
+                            tension: 0.35,
+                            fill: false,
+                            pointRadius: 3,
+                            yAxisID: 'yGyro'
+                        }
+                    ]
                 },
-                scales: {
-                    y: {
-                        min: 0,
-                        max: 4095
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { font: { family: 'IBM Plex Mono, monospace' } } }
+                    },
+                    scales: {
+                        yVib: {
+                            type: 'linear',
+                            position: 'left',
+                            min: 0,
+                            title: { display: true, text: 'Vibração (g)' }
+                        },
+                        yGyro: {
+                            type: 'linear',
+                            position: 'right',
+                            min: 0,
+                            grid: { drawOnChartArea: false },
+                            title: { display: true, text: 'Giroscópio (°/s)' }
+                        }
                     }
                 }
-            }
-        });
+            });
+        } else {
+            const valores = pontos.map(h => Number(h && h.valorLdr != null ? h.valorLdr : (h && h.valor != null ? h.valor : 0)));
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels.length ? labels : ['—'],
+                    datasets: [{
+                        label: 'Leitura LDR (ADC)',
+                        data: valores.length ? valores : [0],
+                        borderColor: '#2563EB',
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        tension: 0.35,
+                        fill: true,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { font: { family: 'IBM Plex Mono, monospace' } }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            min: 0,
+                            max: 4095
+                        }
+                    }
+                }
+            });
+        }
     }
 </script>
 <th:block th:replace="~{fragments/sdae-scripts :: bundle(null)}"></th:block>

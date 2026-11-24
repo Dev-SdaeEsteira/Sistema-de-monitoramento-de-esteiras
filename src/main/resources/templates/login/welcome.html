@@ -706,21 +706,21 @@
                         <div class="s-pip"></div>
                         <div class="s-pip"></div>
                         <div class="s-pip"></div>
-                        <span class="s-label" style="margin-left:4px">SENSOR LASER + LDR (ESP32)</span>
+                        <span class="s-label" style="margin-left:4px">SENSOR MPU-6050 · 6 EIXOS (ESP32)</span>
                     </div>
                 </div>
 
                 <!-- Metrics -->
                 <div class="metrics-row">
                     <div class="metric">
-                        <div class="m-label">Leitura LDR</div>
-                        <div class="m-val blue">1820<span style="font-size:10px;opacity:.5"> ADC</span></div>
+                        <div class="m-label">Vibração RMS</div>
+                        <div class="m-val blue">0.14<span style="font-size:10px;opacity:.5"> g</span></div>
                         <div class="m-change">Faixa nominal</div>
                     </div>
                     <div class="metric">
-                        <div class="m-label">Feixe Laser</div>
-                        <div class="m-val ok">ALINHADO</div>
-                        <div class="m-change">100% visibilidade</div>
+                        <div class="m-label">Giroscópio</div>
+                        <div class="m-val ok">14.2<span style="font-size:10px;opacity:.5"> °/s</span></div>
+                        <div class="m-change">Movimento ativo</div>
                     </div>
                     <div class="metric">
                         <div class="m-label">Esteira</div>
@@ -751,35 +751,35 @@
 <!-- ══ TICKER ══ -->
 <div class="ticker">
     <div class="ticker-track" id="ticker-inner">
-        <div class="t-item"><span class="t-key">SENSOR_01</span><span class="t-val">ESP32 + LDR</span><span class="t-ok">● ONLINE</span></div>
+        <div class="t-item"><span class="t-key">SENSOR_01</span><span class="t-val">ESP32 + MPU-6050</span><span class="t-ok">● ONLINE</span></div>
         <div class="t-item t-sep">·</div>
-        <div class="t-item"><span class="t-key">FEIXE_LASER</span><span class="t-val">KY-008</span><span class="t-ok">● ALINHADO</span></div>
+        <div class="t-item"><span class="t-key">ACELERÔMETRO</span><span class="t-val">0.14g RMS</span><span class="t-ok">● NORMAL</span></div>
         <div class="t-item t-sep">·</div>
-        <div class="t-item"><span class="t-key">LEITURA_ADC</span><span class="t-val">1820</span></div>
+        <div class="t-item"><span class="t-key">GIROSCÓPIO</span><span class="t-val">14.2 °/s</span></div>
         <div class="t-item t-sep">·</div>
         <div class="t-item"><span class="t-key">ESTEIRA_#1</span><span class="t-ok">● RUNNING</span></div>
         <div class="t-item t-sep">·</div>
-        <div class="t-item"><span class="t-key">LATÊNCIA</span><span class="t-val">&lt; 80ms</span></div>
+        <div class="t-item"><span class="t-key">ENVIO</span><span class="t-val">WI-FI / USB</span></div>
         <div class="t-item t-sep">·</div>
         <div class="t-item"><span class="t-key">UPTIME</span><span class="t-val">99.9%</span></div>
         <div class="t-item t-sep">·</div>
-        <div class="t-item"><span class="t-key">TAXA_AMOSTRAGEM</span><span class="t-val">40 Hz</span></div>
+        <div class="t-item"><span class="t-key">TAXA_AMOSTRAGEM</span><span class="t-val">50 Hz</span></div>
         <div class="t-item t-sep">·</div>
         <div class="t-item"><span class="t-key">TELEMETRIA</span><span class="t-ok">● NORMAL</span></div>
         <div class="t-item t-sep">·</div>
-        <div class="t-item"><span class="t-key">SENSOR_01</span><span class="t-val">ESP32 + LDR</span><span class="t-ok">● ONLINE</span></div>
+        <div class="t-item"><span class="t-key">SENSOR_01</span><span class="t-val">ESP32 + MPU-6050</span><span class="t-ok">● ONLINE</span></div>
         <div class="t-item t-sep">·</div>
-        <div class="t-item"><span class="t-key">FEIXE_LASER</span><span class="t-val">KY-008</span><span class="t-ok">● ALINHADO</span></div>
+        <div class="t-item"><span class="t-key">ACELERÔMETRO</span><span class="t-val">0.14g RMS</span><span class="t-ok">● NORMAL</span></div>
         <div class="t-item t-sep">·</div>
-        <div class="t-item"><span class="t-key">LEITURA_ADC</span><span class="t-val">1820</span></div>
+        <div class="t-item"><span class="t-key">GIROSCÓPIO</span><span class="t-val">14.2 °/s</span></div>
         <div class="t-item t-sep">·</div>
         <div class="t-item"><span class="t-key">ESTEIRA_#1</span><span class="t-ok">● RUNNING</span></div>
         <div class="t-item t-sep">·</div>
-        <div class="t-item"><span class="t-key">LATÊNCIA</span><span class="t-val">&lt; 80ms</span></div>
+        <div class="t-item"><span class="t-key">ENVIO</span><span class="t-val">WI-FI / USB</span></div>
         <div class="t-item t-sep">·</div>
         <div class="t-item"><span class="t-key">UPTIME</span><span class="t-val">99.9%</span></div>
         <div class="t-item t-sep">·</div>
-        <div class="t-item"><span class="t-key">TAXA_AMOSTRAGEM</span><span class="t-val">40 Hz</span></div>
+        <div class="t-item"><span class="t-key">TAXA_AMOSTRAGEM</span><span class="t-val">50 Hz</span></div>
         <div class="t-item t-sep">·</div>
         <div class="t-item"><span class="t-key">TELEMETRIA</span><span class="t-ok">● NORMAL</span></div>
     </div>
@@ -788,8 +788,8 @@
 <!-- ══ FEATURES ══ -->
 <section class="features" id="features">
     <span class="s-eye reveal">Tecnologia</span>
-    <h2 class="s-h reveal">Precisão ao nível<br>de milímetros.</h2>
-    <p class="s-p reveal">Cada componente foi escolhido para garantir detecção sem falhas e resposta imediata em ambiente industrial severo.</p>
+    <h2 class="s-h reveal">Precisão em 6 eixos<br>em tempo real.</h2>
+    <p class="s-p reveal">Cada componente foi escolhido para garantir detecção de movimento sem falhas e resposta imediata na operação da esteira.</p>
 
     <div class="feat-grid">
         <div class="feat-card reveal" data-tilt>
@@ -798,9 +798,9 @@
                     <circle cx="12" cy="12" r="2"/><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
                 </svg>
             </div>
-            <h3>Sensor Óptico Laser + LDR</h3>
-            <p>O ESP32 amostra o módulo LDR (GPIO 34, ADC 12 bits) a 40 Hz com histerese e debounce, detectando pulsos de movimento e interrupções no feixe do laser KY-008.</p>
-            <div class="feat-mono">ESP32 · Laser KY-008 + LDR KY-018 · 40 Hz</div>
+            <h3>Sensor MPU-6050 (6 Eixos)</h3>
+            <p>O ESP32/Arduino amostra o acelerômetro e giroscópio MPU-6050 via I2C a 50 Hz com filtro passa-alta EMA, detectando movimento, vibração excessiva e paradas (com suporte legado a Laser + LDR).</p>
+            <div class="feat-mono">ESP32 / Arduino · MPU-6050 I2C · Wi-Fi ou USB</div>
         </div>
 
         <div class="feat-card reveal" style="transition-delay:.08s" data-tilt>
@@ -810,7 +810,7 @@
                 </svg>
             </div>
             <h3>Resposta Imediata</h3>
-            <p>Ao detectar interrupção do feixe ou ausência de pulsos, o servidor registra a transição de estado e dispara alertas críticos automaticamente para a equipe.</p>
+            <p>Ao detectar parada da esteira, vibração anômala ou falha I2C, o servidor registra a transição de estado e dispara alertas críticos automaticamente para a equipe.</p>
             <div class="feat-mono">Watchdog 2s · Timeout configurável (15s)</div>
         </div>
 
@@ -821,7 +821,7 @@
                 </svg>
             </div>
             <h3>Dashboard em Tempo Real</h3>
-            <p>Visualize o estado operacional de cada esteira, leitura LDR, histórico de eventos, alertas críticos e gráficos por período com atualização a cada 2 segundos.</p>
+            <p>Visualize o estado operacional de cada esteira, vibração RMS, giroscópio 6 eixos, histórico de eventos, alertas críticos e gráficos com atualização a cada 2 segundos.</p>
             <div class="feat-mono">Polling HTTP · atualização a cada 2s</div>
         </div>
 
@@ -870,26 +870,26 @@
         <div class="proc-row">
             <div class="proc-step reveal">
                 <div class="proc-num">1</div>
-                <h4>Leitura Óptica</h4>
-                <p>O laser KY-008 projeta um feixe contínuo no LDR (GPIO 34), amostrado pelo ESP32 a 40 Hz (25 ms) com resolução de 12 bits.</p>
-                <span class="proc-tag pt-cyan">40 Hz · Contínuo</span>
+                <h4>Leitura 6 Eixos</h4>
+                <p>O módulo MPU-6050 mede aceleração (±2g) e giroscópio (±250 °/s) via I2C, amostrado pelo ESP32/Arduino a 50 Hz (20 ms).</p>
+                <span class="proc-tag pt-cyan">50 Hz · I2C</span>
             </div>
             <div class="proc-step reveal" style="transition-delay:.12s">
                 <div class="proc-num">2</div>
-                <h4>Detecção de Pulsos</h4>
-                <p>O firmware aplica histerese e debounce de 150 ms na borda para distinguir movimento real da correia de ruídos elétricos.</p>
+                <h4>Filtro &amp; Movimento</h4>
+                <p>O firmware aplica filtro passa-alta EMA (removendo a gravidade) e debounce de 150 ms para distinguir movimento real de ruídos.</p>
                 <span class="proc-tag pt-blue">Edge Computing</span>
             </div>
             <div class="proc-step reveal" style="transition-delay:.24s">
                 <div class="proc-num">3</div>
-                <h4>Análise & Watchdog</h4>
-                <p>O backend recebe telemetria autenticada por X-API-Key e detecta falhas de feixe, paradas (15 s) ou perda de comunicação (OFFLINE).</p>
+                <h4>Envio Wi-Fi / USB</h4>
+                <p>O backend recebe telemetria via Wi-Fi (HTTP POST) ou ponte USB autenticada por X-API-Key, detectando paradas (15 s) ou OFFLINE.</p>
                 <span class="proc-tag pt-amber">Watchdog 2s</span>
             </div>
             <div class="proc-step reveal" style="transition-delay:.36s">
                 <div class="proc-num">4</div>
-                <h4>Registro & Alerta</h4>
-                <p>Eventos, leituras LDR e alertas críticos são persistidos no MySQL com trilha auditável e exportação de relatório em PDF.</p>
+                <h4>Registro &amp; Alerta</h4>
+                <p>Eventos, leituras 6 eixos e alertas críticos são persistidos no MySQL com trilha auditável e exportação de relatório em PDF.</p>
                 <span class="proc-tag pt-green">Log Auditável</span>
             </div>
         </div>
@@ -907,8 +907,8 @@
             <div class="stc-head">
                 <div class="stc-icon" style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.15)">⬤</div>
                 <div>
-                    <div class="stc-label">Sensores Laser</div>
-                    <div class="stc-sub">ESP32 · Laser KY-008 + LDR (GPIO 34)</div>
+                    <div class="stc-label">Sensores MPU-6050</div>
+                    <div class="stc-sub">ESP32 / Arduino · I2C 6 Eixos (compat. Laser + LDR)</div>
                 </div>
                 <span class="stc-badge sb-g">ONLINE</span>
             </div>
@@ -989,8 +989,8 @@
             <div class="stat-desc">Intervalo de atualização do painel</div>
         </div>
         <div class="stat-item reveal" style="transition-delay:.2s">
-            <div class="stat-num"><span>40Hz</span></div>
-            <div class="stat-desc">Taxa de amostragem do sensor LDR</div>
+            <div class="stat-num"><span>50Hz</span></div>
+            <div class="stat-desc">Taxa de amostragem do MPU-6050</div>
         </div>
         <div class="stat-item reveal" style="transition-delay:.3s">
             <div class="stat-num"><span>24/7</span></div>

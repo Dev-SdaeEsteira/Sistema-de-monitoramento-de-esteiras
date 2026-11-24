@@ -50,7 +50,9 @@ public class SensorController {
 
     @GetMapping("/novo")
     public String formularioNovo(Model model) {
-        model.addAttribute("sensor",   new Sensor());
+        Sensor novo = new Sensor();
+        novo.setTipo("MPU-6050 (Acelerômetro + Giroscópio)");
+        model.addAttribute("sensor",   novo);
         model.addAttribute("esteiras", esteiraService.listarTodas());
         return "cadastro/cadastrosensor";
     }
@@ -77,12 +79,17 @@ public class SensorController {
                 alvo = sensorService.buscarPorId(sensor.getId())
                         .orElseThrow(() -> new IllegalArgumentException("Sensor não encontrado"));
                 alvo.setModelo(sensor.getModelo());
+                if (sensor.getTipo() != null && !sensor.getTipo().isBlank()) {
+                    alvo.setTipo(sensor.getTipo());
+                }
                 if (sensor.getLeituraAtual() != null) {
                     alvo.setLeituraAtual(sensor.getLeituraAtual());
                 }
             } else {
                 alvo = new Sensor();
                 alvo.setModelo(sensor.getModelo());
+                alvo.setTipo(sensor.getTipo() != null && !sensor.getTipo().isBlank()
+                        ? sensor.getTipo() : "MPU-6050 (Acelerômetro + Giroscópio)");
                 alvo.setLeituraAtual(sensor.getLeituraAtual() != null ? sensor.getLeituraAtual() : 0.0);
             }
 

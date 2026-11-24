@@ -87,15 +87,28 @@ public class DashboardRestController {
                 map.put("sensorId", prim.getId());
                 map.put("sensorNome", prim.getModelo());
                 map.put("sensorTipo", prim.getTipo());
+                map.put("sensorMpu6050", prim.isMpu6050());
                 map.put("sensorValorLdr", prim.getUltimoValorLdr());
+                map.put("sensorLeituraAtual", prim.getLeituraAtual());
                 map.put("sensorLaser", prim.getLaserDetectado());
                 map.put("sensorPulsos", prim.getQuantidadePulsos());
                 map.put("sensorConectado", prim.isConectado());
                 map.put("sensorUltimaLeituraTexto", prim.getUltimaLeituraTexto());
                 map.put("sensorNivelRisco", prim.getNivelRisco().name());
+                map.put("sensorVibracaoRms", prim.getVibracaoRms());
+                map.put("sensorVibracaoPico", prim.getVibracaoPico());
+                map.put("sensorVelocidadeAngular", prim.getVelocidadeAngular());
+                map.put("sensorAx", prim.getAceleracaoX());
+                map.put("sensorAy", prim.getAceleracaoY());
+                map.put("sensorAz", prim.getAceleracaoZ());
+                map.put("sensorGx", prim.getGiroscopioX());
+                map.put("sensorGy", prim.getGiroscopioY());
+                map.put("sensorGz", prim.getGiroscopioZ());
             } else {
                 map.put("sensorNome", "Sem sensor");
+                map.put("sensorMpu6050", false);
                 map.put("sensorValorLdr", 0);
+                map.put("sensorLeituraAtual", 0.0);
                 map.put("sensorLaser", false);
                 map.put("sensorPulsos", 0);
                 map.put("sensorConectado", false);
@@ -125,7 +138,7 @@ public class DashboardRestController {
     }
 
     /**
-     * Endpoint para dados do gráfico histórico de LDR.
+     * Endpoint para dados do gráfico histórico (MPU-6050 e LDR).
      * Suporta períodos: 5m, 15m, 1h, 24h.
      */
     @GetMapping("/grafico-ldr")
@@ -154,14 +167,24 @@ public class DashboardRestController {
 
         List<Map<String, Object>> result = new ArrayList<>();
         for (LeituraHistorico l : leituras) {
-            result.add(Map.of(
-                    "hora", l.getDataHora().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss")),
-                    "valorLdr", l.getValorLdr() != null ? l.getValorLdr() : 0,
-                    "laser", l.getLaserDetectado() != null && l.getLaserDetectado(),
-                    "pulso", l.getPulsoDetectado() != null && l.getPulsoDetectado(),
-                    "estado", l.getEstadoEsteira() != null ? l.getEstadoEsteira().name() : "STOPPED",
-                    "porcentagem", l.getValor() != null ? l.getValor() : 0.0
-            ));
+            Map<String, Object> ponto = new LinkedHashMap<>();
+            ponto.put("hora", l.getDataHora().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss")));
+            ponto.put("valorLdr", l.getValorLdr() != null ? l.getValorLdr() : 0);
+            ponto.put("laser", l.getLaserDetectado() != null && l.getLaserDetectado());
+            ponto.put("pulso", l.getPulsoDetectado() != null && l.getPulsoDetectado());
+            ponto.put("estado", l.getEstadoEsteira() != null ? l.getEstadoEsteira().name() : "STOPPED");
+            ponto.put("porcentagem", l.getValor() != null ? l.getValor() : 0.0);
+            ponto.put("temDadosMpu6050", l.isTemDadosMpu6050());
+            ponto.put("vibracaoRms", l.getVibracaoRms());
+            ponto.put("vibracaoPico", l.getVibracaoPico());
+            ponto.put("velocidadeAngular", l.getVelocidadeAngular());
+            ponto.put("ax", l.getAceleracaoX());
+            ponto.put("ay", l.getAceleracaoY());
+            ponto.put("az", l.getAceleracaoZ());
+            ponto.put("gx", l.getGiroscopioX());
+            ponto.put("gy", l.getGiroscopioY());
+            ponto.put("gz", l.getGiroscopioZ());
+            result.add(ponto);
         }
         return result;
     }
