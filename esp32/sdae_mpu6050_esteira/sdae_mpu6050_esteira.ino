@@ -58,9 +58,16 @@
 // 0 = Somente Serial USB (use com esp32/ponte_usb/sdae_usb_bridge.py)
 #define MODO_ENVIO_WIFI 1
 
+// 0 = Servidor local na rede Wi-Fi via HTTP (ex.: 192.168.0.105:8080)
+// 1 = Servidor na nuvem via HTTPS (ex.: seu-app.onrender.com na porta 443)
+#define USAR_HTTPS 0
+
 #if MODO_ENVIO_WIFI && defined(ESP32)
   #include <WiFi.h>
   #include <HTTPClient.h>
+  #if USAR_HTTPS
+    #include <WiFiClientSecure.h>
+  #endif
   #define USAR_WIFI_ATIVO 1
 #else
   #define USAR_WIFI_ATIVO 0
@@ -72,8 +79,8 @@ const char* WIFI_SSID     = "NOME_DA_SUA_REDE";
 const char* WIFI_PASSWORD = "SENHA_DA_SUA_REDE";
 
 // ── 2. CONFIGURAÇÃO DO SERVIDOR (Spring Boot) ───────────────────────────
-// Use o IP local da máquina rodando o Spring Boot (ex.: 192.168.0.105).
-// Não use "localhost" no ESP32, pois ele é outro dispositivo na rede.
+// Local (USAR_HTTPS = 0): IP local do PC (ex.: "192.168.0.105", porta 8080)
+// Nuvem (USAR_HTTPS = 1): domínio Render/Railway (ex.: "sdae-monitoramento-esteiras.onrender.com", porta 443)
 const char* SERVER_HOST = "192.168.0.105";
 const int   SERVER_PORT = 8080;
 
@@ -474,7 +481,7 @@ void enviarTelemetria() {
     Serial.print("SDAE_JSON:");
     Serial.println(jsonTelemetria);
 
-    // 3. Envio direto via Wi-Fi (HTTP POST para a API do Spring Boot)
+    // 3. Envio direto via Wi-Fi (HTTP ou HTTPS POST para a API do Spring Boot)
 #if USAR_WIFI_ATIVO
     if (WiFi.status() != WL_CONNECTED) {
         conectarWifi();
@@ -482,11 +489,20 @@ void enviarTelemetria() {
 
     if (WiFi.status() == WL_CONNECTED) {
         HTTPClient http;
+#if USAR_HTTPS
+        WiFiClientSecure clienteTls;
+        clienteTls.setInsecure(); // Aceita certificado TLS da nuvem (Render/Railway/Koyeb) sem pinning manual
+        String url = String("https://") + SERVER_HOST
+                     + (SERVER_PORT != 443 ? (String(":") + SERVER_PORT) : String(""))
+                     + "/api/sensores/" + String(SENSOR_ID) + "/leitura";
+        http.begin(clienteTls, url);
+        http.setTimeout(5000);
+#else
         String url = String("http://") + SERVER_HOST + ":" + SERVER_PORT
                      + "/api/sensores/" + String(SENSOR_ID) + "/leitura";
-
         http.begin(url);
-        http.setTimeout(2000);
+        http.setTimeout(2500);
+#endif
         http.addHeader("Content-Type", "application/json");
         http.addHeader("X-API-Key", API_KEY);
 
@@ -538,9 +554,11 @@ void setup() {
     Wire.setClock(400000); // I2C Fast Mode (400 kHz)
 
 #if USAR_WIFI_ATIVO
-    Serial.println("Modo de envio: Wi-Fi (HTTP POST) + USB Serial");
+    Serial.println("Modo de envio: Wi-Fi (HTTP/HTTPS POST) + USB Serial");
     Serial.print("Sensor ID: "); Serial.println(SENSOR_ID);
-    Serial.print("Servidor: http://"); Serial.print(SERVER_HOST); Serial.print(":"); Serial.println(SERVER_PORT);
+    Serial.print("Servidor: ");
+    Serial.print(USAR_HTTPS ? "https://" : "http://");
+    Serial.print(SERVER_HOST); Serial.print(":"); Serial.println(SERVER_PORT);
 #else
     Serial.println("Modo de envio: Somente USB Serial (use sdae_usb_bridge.py)");
 #endif

@@ -1,0 +1,22 @@
+# Render Blueprint — SDAE (Spring Boot + Docker)
+# Ao importar no Render (New -> Blueprint), basta preencher as 3 variáveis
+# do banco MySQL (ex.: Aiven, TiDB Cloud ou Railway) no painel do Render.
+services:
+  - type: web
+    name: sdae-monitoramento-esteiras
+    runtime: docker
+    plan: free
+    healthCheckPath: /welcome
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: SPRING_DATASOURCE_URL
+        sync: false
+      - key: SPRING_DATASOURCE_USERNAME
+        sync: false
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
+      - key: ADMIN_INITIAL_EMAIL
+        value: admin@sdae.com.br
+      - key: ADMIN_INITIAL_PASSWORD
+        sync: false

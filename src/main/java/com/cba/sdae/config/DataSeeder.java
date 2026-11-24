@@ -5,7 +5,6 @@ import com.cba.sdae.repository.FuncionarioRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -22,7 +21,6 @@ import org.springframework.stereotype.Component;
  *  2. Converte para BCrypt qualquer senha legada gravada em texto puro.
  */
 @Component
-@Profile({"dev", "test"})
 public class DataSeeder implements CommandLineRunner {
 
     private static final Logger log = LoggerFactory.getLogger(DataSeeder.class);
@@ -39,12 +37,21 @@ public class DataSeeder implements CommandLineRunner {
     @Override
     public void run(String... args) {
         if (funcionarioRepository.count() == 0) {
-            log.info("Nenhum funcionário cadastrado — criando apenas o administrador inicial.");
-            Funcionario admin = new Funcionario("Administrador", "admin@sdae.com.br", "ADMINISTRADOR", "MANHA");
+            String emailInicial = System.getenv("ADMIN_INITIAL_EMAIL");
+            if (emailInicial == null || emailInicial.isBlank()) {
+                emailInicial = "admin@sdae.com.br";
+            }
+            String senhaInicial = System.getenv("ADMIN_INITIAL_PASSWORD");
+            if (senhaInicial == null || senhaInicial.isBlank()) {
+                senhaInicial = "admin123";
+            }
+
+            log.info("Nenhum funcionário cadastrado — criando administrador inicial ({}).", emailInicial);
+            Funcionario admin = new Funcionario("Administrador", emailInicial.trim(), "ADMINISTRADOR", "MANHA");
             admin.setMatricula("ADMIN001");
             admin.setNivelAcesso("ADMINISTRADOR");
             admin.setDepartamento("TI");
-            admin.setSenha(passwordEncoder.encode("admin123"));
+            admin.setSenha(passwordEncoder.encode(senhaInicial));
             funcionarioRepository.save(admin);
             return;
         }

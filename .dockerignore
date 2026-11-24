@@ -1,0 +1,16 @@
+.git
+.gitignore
+.env
+.env.*
+target/
+build/
+esp32/
+prints-apresentacao/
+.idea/
+.vscode/
+*.iml
+*.log
+*.zip
+README*.md
+DEPLOY.md
+HELP.md
